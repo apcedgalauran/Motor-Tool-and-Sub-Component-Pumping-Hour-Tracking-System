@@ -1,0 +1,84 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum MotorStatus {
+  ACTIVE
+  INACTIVE
+  IN_MAINTENANCE
+}
+
+enum SubComponentType {
+  STATOR_ADAPTER
+  SPLINE_MANDREL
+  ADJUSTING_RING
+  OFFSET_HOUSING
+  ROTOR_COUPLING
+  TRANS_SHAFT
+  SHAFT_COUPLING
+  ROTOR
+  STATOR
+  SLEEVE
+  FLOAT_SUB
+  LIFT_SUB
+}
+
+model Motor {
+  id            String      @id @default(cuid())
+  name          String
+  serialNumber  String      @unique
+  location      String?
+  dateOut       DateTime?
+  dateIn        DateTime?
+  status        MotorStatus @default(ACTIVE)
+  pumpingHours  Float       @default(0)
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  assemblies Assembly[]
+  hourLogs   HourLog[]
+}
+
+model SubComponent {
+  id              String           @id @default(cuid())
+  type            SubComponentType
+  serialNumber    String           @unique
+  cumulativeHours Float            @default(0)
+  status          String           @default("AVAILABLE")
+  notes           String?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  assemblies Assembly[]
+}
+
+model Assembly {
+  id              String    @id @default(cuid())
+  motorId         String
+  subComponentId  String
+  dateAssembled   DateTime  @default(now())
+  dateRemoved     DateTime?
+  hoursAtAssembly Float
+  hoursAtRemoval  Float?
+  hoursAccrued    Float?
+
+  motor        Motor        @relation(fields: [motorId], references: [id])
+  subComponent SubComponent @relation(fields: [subComponentId], references: [id])
+
+  @@index([motorId, dateRemoved])
+}
+
+model HourLog {
+  id         String   @id @default(cuid())
+  motorId    String
+  hoursAdded Float
+  totalAfter Float
+  notes      String?
+  createdAt  DateTime @default(now())
+
+  motor Motor @relation(fields: [motorId], references: [id])
+}

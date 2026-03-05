@@ -1,0 +1,72 @@
+'use server';
+
+import { prisma } from '@/lib/prisma';
+import { revalidatePath } from 'next/cache';
+
+export async function assembleSubComponent(
+  motorId: string,
+  subComponentId: string
+) {
+  // Validate: sub-component must not already be installed on another motor
+  const existingActive = await prisma.assembly.findFirst({
+    where: { subComponentId, dateRemoved: null },
+  });
+
+  if (existingActive) {
+    throw new Error('This sub-component is already installed on another motor.');
+  }
+
+  // Get motor's current hours for the snapshot
+  const motor = await prisma.motor.findUniqueOrThrow({
+    where: { id: motorId },
+  });
+
+  const assembly = await prisma.assembly.create({
+    data: {
+      motorId,
+      subComponentId,
+      hoursAtAssembly: motor.pumpingHours,
+      dateRemoved: null,
+    },
+  });
+
+  // Update sub-component status
+  await prisma.subComponent.update({
+    where: { id: subComponentId },
+    data: { status: 'INSTALLED' },
+  });
+
+  revalidatePath(`/motors/${motorId}`);
+  revalidatePath(`/sub-components/${subComponentId}`);
+  revalidatePath('/');
+  return assembly;
+}
+
+export async function disassembleSubComponent(assemblyId: string) {
+  const assembly = await prisma.assembly.findUniqueOrThrow({
+    where: { id: assemblyId },
+    include: { motor: true },
+  });
+
+  const hoursAtRemoval = assembly.motor.pumpingHours;
+  const hoursAccrued = hoursAtRemoval - assembly.hoursAtAssembly;
+
+  await prisma.assembly.update({
+    where: { id: assemblyId },
+    data: {
+      dateRemoved: new Date(),
+      hoursAtRemoval,
+      hoursAccrued,
+    },
+  });
+
+  // Update sub-component status back to available
+  await prisma.subComponent.update({
+    where: { id: assembly.subComponentId },
+    data: { status: 'AVAILABLE' },
+  });
+
+  revalidatePath(`/motors/${assembly.motorId}`);
+  revalidatePath(`/sub-components/${assembly.subComponentId}`);
+  revalidatePath('/');
+}
