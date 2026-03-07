@@ -1,3 +1,5 @@
+export const runtime = 'nodejs';
+
 import { prisma } from '@/lib/prisma';
 import { NextRequest } from 'next/server';
 import { SUB_COMPONENT_LABELS } from '@/lib/utils';

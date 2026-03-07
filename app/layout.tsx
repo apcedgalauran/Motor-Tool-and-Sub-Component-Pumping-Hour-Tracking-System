@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import { JetBrains_Mono } from "next/font/google";
 import "./globals.css";
-import { Sidebar } from "@/components/Sidebar";
+import { Providers } from "@/components/Providers";
+import { LayoutWrapper } from "@/components/LayoutWrapper";
 
 const jetbrainsMono = JetBrains_Mono({
   variable: "--font-jetbrains",
@@ -22,14 +23,11 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${jetbrainsMono.variable} font-[family-name:var(--font-jetbrains)] antialiased`}>
-        <div className="flex min-h-screen">
-          <Sidebar />
-          <main className="flex-1 ml-0 md:ml-64 relative z-10">
-            <div className="p-4 md:p-8 max-w-7xl mx-auto">
-              {children}
-            </div>
-          </main>
-        </div>
+        <Providers>
+          <LayoutWrapper>
+            {children}
+          </LayoutWrapper>
+        </Providers>
       </body>
     </html>
   );

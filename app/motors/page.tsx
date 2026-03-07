@@ -11,12 +11,12 @@ export default async function MotorsPage() {
     <div>
       <div className="flex items-center justify-between mb-8 animate-fade-in">
         <div>
-          <h1 className="text-2xl font-bold text-slate-100 tracking-tight">Motors</h1>
-          <p className="text-sm text-slate-500 mt-1">{motors.length} motor{motors.length !== 1 ? 's' : ''} registered</p>
+          <h1 className="text-2xl font-bold text-[#121212] tracking-tight">Motors</h1>
+          <p className="text-sm text-[#333333] mt-1">{motors.length} motor{motors.length !== 1 ? 's' : ''} registered</p>
         </div>
         <Link
           href="/motors/new"
-          className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-semibold text-sm px-4 py-2.5 rounded-lg transition-all duration-200"
+          className="bg-[#9E9EB0] hover:bg-[#8A8A9F] text-white font-semibold text-sm px-4 py-2.5 rounded-lg transition-all duration-200"
         >
           + New Motor
         </Link>
@@ -41,10 +41,10 @@ export default async function MotorsPage() {
       ) : (
         <div className="text-center py-20 animate-fade-in">
           <div className="text-4xl mb-4 opacity-30">⚙</div>
-          <p className="text-slate-500 text-sm mb-4">No motors registered</p>
+          <p className="text-[#333333] text-sm mb-4">No motors registered</p>
           <Link
             href="/motors/new"
-            className="inline-block bg-amber-500/10 text-amber-400 border border-amber-500/30 text-sm px-4 py-2 rounded-lg hover:bg-amber-500/20 transition-colors"
+            className="inline-block bg-[#9E9EB0]/10 text-[#9E9EB0] border border-[#9E9EB0]/30 text-sm px-4 py-2 rounded-lg hover:bg-[#9E9EB0]/20 transition-colors"
           >
             Add your first motor
           </Link>

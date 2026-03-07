@@ -44,6 +44,15 @@ model Motor {
   hourLogs   HourLog[]
 }
 
+model User {
+  id            String     @id @default(cuid())
+  name          String
+  email         String     @unique
+  passwordHash  String
+  createdAt     DateTime   @default(now())
+  hourLogs      HourLog[]
+}
+
 model SubComponent {
   id              String           @id @default(cuid())
   type            SubComponentType
@@ -78,8 +87,12 @@ model HourLog {
   motorId    String
   hoursAdded Float
   totalAfter Float
+  userId     String?
+  rigName    String?
+  wellNumber String?
   notes      String?
   createdAt  DateTime @default(now())
 
   motor Motor @relation(fields: [motorId], references: [id])
+  user  User? @relation(fields: [userId], references: [id])
 }

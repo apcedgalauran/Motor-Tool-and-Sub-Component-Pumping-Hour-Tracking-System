@@ -12,6 +12,14 @@ export async function createMotor(data: {
   dateIn?: string;
   status?: MotorStatus;
 }) {
+  const existing = await prisma.motor.findUnique({
+    where: { serialNumber: data.serialNumber },
+  });
+
+  if (existing) {
+    throw new Error('A motor with this serial number already exists.');
+  }
+
   const motor = await prisma.motor.create({
     data: {
       name: data.name,
@@ -39,6 +47,16 @@ export async function updateMotor(
     status?: MotorStatus;
   }
 ) {
+  if (data.serialNumber !== undefined) {
+    const existing = await prisma.motor.findFirst({
+      where: { serialNumber: data.serialNumber, id: { not: id } },
+    });
+
+    if (existing) {
+      throw new Error('A motor with this serial number already exists.');
+    }
+  }
+
   const motor = await prisma.motor.update({
     where: { id },
     data: {
@@ -101,6 +119,7 @@ export async function getMotor(id: string) {
       },
       hourLogs: {
         orderBy: { createdAt: 'desc' },
+        include: { user: { select: { name: true } } },
       },
     },
   });
