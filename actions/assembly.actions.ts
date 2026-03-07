@@ -70,3 +70,39 @@ export async function disassembleSubComponent(assemblyId: string) {
   revalidatePath(`/sub-components/${assembly.subComponentId}`);
   revalidatePath('/');
 }
+
+export async function disperseToolset(motorId: string) {
+  await prisma.$transaction(async (tx) => {
+    // Snapshot motor's current hours
+    const motor = await tx.motor.findUniqueOrThrow({ where: { id: motorId } });
+    const hoursAtRemoval = motor.pumpingHours;
+
+    // Find all active assemblies
+    const active = await tx.assembly.findMany({ where: { motorId, dateRemoved: null } });
+    if (active.length === 0) return;
+
+    // Close all assemblies simultaneously
+    await Promise.all(
+      active.map((a) =>
+        tx.assembly.update({
+          where: { id: a.id },
+          data: {
+            dateRemoved: new Date(),
+            hoursAtRemoval,
+            hoursAccrued: hoursAtRemoval - a.hoursAtAssembly,
+          },
+        })
+      )
+    );
+
+    // Update all sub-component statuses back to AVAILABLE
+    await Promise.all(
+      active.map((a) =>
+        tx.subComponent.update({ where: { id: a.subComponentId }, data: { status: 'AVAILABLE' } })
+      )
+    );
+  });
+
+  revalidatePath(`/motors/${motorId}`);
+  revalidatePath('/');
+}

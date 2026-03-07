@@ -1,14 +1,24 @@
 'use server';
 
 import { prisma } from '@/lib/prisma';
+import { auth } from '@/auth';
 import { revalidatePath } from 'next/cache';
 
 export async function logPumpingHours(
   motorId: string,
   hoursAdded: number,
+  rigName: string,
+  wellNumber: string,
   notes?: string
 ) {
   if (hoursAdded <= 0) throw new Error('Hours must be a positive number');
+  if (!rigName || !rigName.trim()) throw new Error('Rig Name is required');
+  if (!wellNumber || !wellNumber.trim()) throw new Error('Well Number is required');
+
+  // Get user session BEFORE opening the transaction
+  const session = await auth();
+  if (!session?.user?.id) throw new Error('Not authenticated');
+  const userId = session.user.id;
 
   const result = await prisma.$transaction(async (tx) => {
     // STEP 1: Increment motor's pumping hours
@@ -17,12 +27,15 @@ export async function logPumpingHours(
       data: { pumpingHours: { increment: hoursAdded } },
     });
 
-    // STEP 2: Create audit log entry
+    // STEP 2: Create audit log entry (includes user, rig, well)
     await tx.hourLog.create({
       data: {
         motorId,
+        userId,
         hoursAdded,
         totalAfter: updatedMotor.pumpingHours,
+        rigName,
+        wellNumber,
         notes,
       },
     });

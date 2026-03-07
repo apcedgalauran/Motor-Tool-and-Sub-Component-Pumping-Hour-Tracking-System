@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { signOut } from 'next-auth/react';
 import { usePathname } from 'next/navigation';
 import { useState } from 'react';
 
@@ -16,37 +17,46 @@ export function Sidebar() {
 
   return (
     <>
-      {/* Mobile toggle */}
-      <button
-        onClick={() => setMobileOpen(!mobileOpen)}
-        className="fixed top-4 left-4 z-50 md:hidden w-10 h-10 flex items-center justify-center rounded-lg bg-[var(--card)] border border-[var(--border)] text-amber-500"
-      >
-        {mobileOpen ? '✕' : '☰'}
-      </button>
+      {/* Mobile Top Header (Sticky) */}
+      <div className="fixed top-0 left-0 right-0 h-16 bg-[#EBEBEB] border-b border-[var(--border)] z-50 flex items-center justify-between px-4 md:hidden">
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded-lg bg-[#9E9EB0]/10 border border-[#9E9EB0]/30 flex items-center justify-center text-[#9E9EB0] text-sm font-bold">
+            M
+          </div>
+          <div>
+            <h1 className="text-[13px] font-semibold text-[#121212] tracking-tight">Motor Tracker</h1>
+          </div>
+        </div>
+        <button
+          onClick={() => setMobileOpen(!mobileOpen)}
+          className="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-[#9E9EB0]/10 transition-colors text-[#333333]"
+        >
+          {mobileOpen ? '✕' : '☰'}
+        </button>
+      </div>
 
       {/* Overlay */}
       {mobileOpen && (
         <div
-          className="fixed inset-0 bg-black/60 z-30 md:hidden"
+          className="fixed inset-0 bg-black/30 z-40 md:hidden top-16"
           onClick={() => setMobileOpen(false)}
         />
       )}
 
       {/* Sidebar */}
       <aside
-        className={`fixed top-0 left-0 h-full w-64 bg-[var(--card)] border-r border-[var(--border)] z-40 transition-transform duration-300 ${
-          mobileOpen ? 'translate-x-0' : '-translate-x-full'
-        } md:translate-x-0`}
+        className={`fixed top-16 md:top-0 left-0 h-[calc(100%-4rem)] md:h-full w-64 bg-[#EBEBEB] border-r border-[var(--border)] z-40 transition-transform duration-300 ${mobileOpen ? 'translate-x-0' : '-translate-x-full'
+          } md:translate-x-0 overflow-y-auto`}
       >
-        {/* Logo */}
-        <div className="p-6 border-b border-[var(--border)]">
+        {/* Logo (Desktop Only) */}
+        <div className="hidden md:block p-6 border-b border-[var(--border)]">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-lg bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-500 text-lg font-bold">
+            <div className="w-9 h-9 rounded-lg bg-[#9E9EB0]/10 border border-[#9E9EB0]/30 flex items-center justify-center text-[#9E9EB0] text-lg font-bold">
               M
             </div>
             <div>
-              <h1 className="text-sm font-semibold text-slate-100 tracking-tight">Motor Tracker</h1>
-              <p className="text-[10px] text-slate-500 uppercase tracking-widest">Hour System</p>
+              <h1 className="text-sm font-semibold text-[#121212] tracking-tight">Motor Tracker</h1>
+              <p className="text-[10px] text-[#333333] uppercase tracking-widest">Hour System</p>
             </div>
           </div>
         </div>
@@ -64,11 +74,10 @@ export function Sidebar() {
                   <Link
                     href={item.href}
                     onClick={() => setMobileOpen(false)}
-                    className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all duration-200 ${
-                      isActive
-                        ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
-                        : 'text-slate-400 hover:text-slate-200 hover:bg-[var(--card-hover)] border border-transparent'
-                    }`}
+                    className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all duration-200 ${isActive
+                      ? 'bg-[#9E9EB0]/15 text-[#121212] border border-[#9E9EB0]/30 font-semibold'
+                      : 'text-[#333333] hover:text-[#121212] hover:bg-[var(--card-hover)] border border-transparent'
+                      }`}
                   >
                     <span className="text-base">{item.icon}</span>
                     <span className="font-medium">{item.label}</span>
@@ -81,24 +90,32 @@ export function Sidebar() {
 
         {/* Footer */}
         <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-[var(--border)]">
-          <div className="text-[10px] text-slate-600 uppercase tracking-wider mb-2">
+          <div className="text-[10px] text-[#333333] uppercase tracking-wider mb-2">
             Export Data
           </div>
           <div className="flex gap-2">
             <a
               href="/api/export?type=motors"
-              className="flex-1 text-center text-[10px] text-slate-400 hover:text-amber-400 border border-[var(--border)] hover:border-amber-500/30 rounded-md py-1.5 transition-colors"
+              className="flex-1 text-center text-[10px] text-[#333333] hover:text-[#9E9EB0] border border-[var(--border)] hover:border-[#9E9EB0]/50 rounded-md py-1.5 transition-colors"
             >
               Motors CSV
             </a>
             <a
               href="/api/export?type=sub-components"
-              className="flex-1 text-center text-[10px] text-slate-400 hover:text-amber-400 border border-[var(--border)] hover:border-amber-500/30 rounded-md py-1.5 transition-colors"
+              className="flex-1 text-center text-[10px] text-[#333333] hover:text-[#9E9EB0] border border-[var(--border)] hover:border-[#9E9EB0]/50 rounded-md py-1.5 transition-colors"
             >
               Parts CSV
             </a>
           </div>
-          <div className="text-[10px] text-slate-700 mt-2">v1.0</div>
+          <div className="text-[10px] text-[#A3A3A3] mt-2">v1.0</div>
+          <div className="mt-3">
+            <button
+              onClick={() => signOut({ callbackUrl: '/login' })}
+              className="w-full text-[10px] text-[#333333] hover:text-[#9E9EB0] border border-[var(--border)] hover:border-[#9E9EB0]/50 rounded-md py-1.5 transition-colors"
+            >
+              Sign Out
+            </button>
+          </div>
         </div>
       </aside>
     </>

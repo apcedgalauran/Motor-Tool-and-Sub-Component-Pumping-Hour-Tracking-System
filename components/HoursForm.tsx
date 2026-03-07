@@ -12,6 +12,8 @@ type HoursFormProps = {
 export function HoursForm({ motorId, motorName, currentHours }: HoursFormProps) {
   const [hours, setHours] = useState('');
   const [notes, setNotes] = useState('');
+  const [rigName, setRigName] = useState('');
+  const [wellNumber, setWellNumber] = useState('');
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<{ motor: { pumpingHours: number }; subComponentsUpdated: number } | null>(null);
   const [error, setError] = useState('');
@@ -27,12 +29,23 @@ export function HoursForm({ motorId, motorName, currentHours }: HoursFormProps) 
       return;
     }
 
+    if (!rigName.trim()) {
+      setError('Rig Name is required');
+      return;
+    }
+    if (!wellNumber.trim()) {
+      setError('Well Number is required');
+      return;
+    }
+
     setLoading(true);
     try {
-      const res = await logPumpingHours(motorId, hoursNum, notes || undefined);
+      const res = await logPumpingHours(motorId, hoursNum, rigName, wellNumber, notes || undefined);
       setResult(res);
       setHours('');
       setNotes('');
+      setRigName('');
+      setWellNumber('');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to log hours');
     } finally {
@@ -42,13 +55,13 @@ export function HoursForm({ motorId, motorName, currentHours }: HoursFormProps) 
 
   return (
     <div className="bg-[var(--card)] border border-[var(--border)] rounded-xl p-5">
-      <h3 className="text-sm font-semibold text-slate-200 mb-4 flex items-center gap-2">
-        <span className="text-amber-500">+</span> Log Pumping Hours
+      <h3 className="text-sm font-semibold text-[#121212] mb-4 flex items-center gap-2">
+        <span className="text-[#9E9EB0]">+</span> Log Pumping Hours
       </h3>
 
       <form onSubmit={handleSubmit} className="space-y-3">
         <div>
-          <label className="block text-xs text-slate-500 mb-1.5 uppercase tracking-wider">
+          <label className="block text-xs text-[#333333] mb-1.5 uppercase tracking-wider">
             Hours to Add
           </label>
           <input
@@ -59,12 +72,12 @@ export function HoursForm({ motorId, motorName, currentHours }: HoursFormProps) 
             onChange={(e) => setHours(e.target.value)}
             placeholder="e.g. 24.5"
             required
-            className="w-full bg-[var(--background)] border border-[var(--border)] rounded-lg px-3 py-2.5 text-sm text-slate-200 placeholder:text-slate-600 focus:outline-none focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/20 transition-colors"
+            className="w-full bg-[#EBEBEB] border border-[var(--border)] rounded-lg px-3 py-3 md:py-2.5 text-sm text-[#333333] placeholder:text-[#A3A3A3] focus:outline-none focus:border-[#9E9EB0] focus:ring-1 focus:ring-[#9E9EB0]/30 transition-colors"
           />
         </div>
 
         <div>
-          <label className="block text-xs text-slate-500 mb-1.5 uppercase tracking-wider">
+          <label className="block text-xs text-[#333333] mb-1.5 uppercase tracking-wider">
             Notes (optional)
           </label>
           <input
@@ -72,32 +85,60 @@ export function HoursForm({ motorId, motorName, currentHours }: HoursFormProps) 
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
             placeholder="Job site, well name, etc."
-            className="w-full bg-[var(--background)] border border-[var(--border)] rounded-lg px-3 py-2.5 text-sm text-slate-200 placeholder:text-slate-600 focus:outline-none focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/20 transition-colors"
+            className="w-full bg-[#EBEBEB] border border-[var(--border)] rounded-lg px-3 py-3 md:py-2.5 text-sm text-[#333333] placeholder:text-[#A3A3A3] focus:outline-none focus:border-[#9E9EB0] focus:ring-1 focus:ring-[#9E9EB0]/30 transition-colors"
+          />
+        </div>
+
+        <div>
+          <label className="block text-xs text-[#333333] mb-1.5 uppercase tracking-wider">
+            Rig Name
+          </label>
+          <input
+            type="text"
+            value={rigName}
+            onChange={(e) => setRigName(e.target.value)}
+            placeholder="e.g. Rig A"
+            required
+            className="w-full bg-[#EBEBEB] border border-[var(--border)] rounded-lg px-3 py-3 md:py-2.5 text-sm text-[#333333] placeholder:text-[#A3A3A3] focus:outline-none focus:border-[#9E9EB0] focus:ring-1 focus:ring-[#9E9EB0]/30 transition-colors"
+          />
+        </div>
+
+        <div>
+          <label className="block text-xs text-[#333333] mb-1.5 uppercase tracking-wider">
+            Well Number
+          </label>
+          <input
+            type="text"
+            value={wellNumber}
+            onChange={(e) => setWellNumber(e.target.value)}
+            placeholder="e.g. 12-34-A"
+            required
+            className="w-full bg-[#EBEBEB] border border-[var(--border)] rounded-lg px-3 py-3 md:py-2.5 text-sm text-[#333333] placeholder:text-[#A3A3A3] focus:outline-none focus:border-[#9E9EB0] focus:ring-1 focus:ring-[#9E9EB0]/30 transition-colors"
           />
         </div>
 
         <button
           type="submit"
           disabled={loading}
-          className="w-full bg-amber-500 hover:bg-amber-400 text-slate-950 font-semibold text-sm py-2.5 rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="w-full bg-[#9E9EB0] hover:bg-[#8A8A9F] text-white font-semibold text-sm py-3 md:py-2.5 rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {loading ? 'Logging...' : 'Log Hours'}
         </button>
       </form>
 
       {error && (
-        <div className="mt-3 p-3 bg-red-500/10 border border-red-500/30 rounded-lg text-xs text-red-400">
+        <div className="mt-3 p-3 bg-red-500/10 border border-red-500/30 rounded-lg text-xs text-red-500">
           {error}
         </div>
       )}
 
       {result && (
-        <div className="mt-3 p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-lg text-xs text-emerald-400">
+        <div className="mt-3 p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-lg text-xs text-emerald-600">
           <p className="font-semibold">Hours logged successfully</p>
-          <p className="mt-1 text-emerald-500/80">
+          <p className="mt-1 text-emerald-600/80">
             {motorName}: {result.motor.pumpingHours.toFixed(1)} hrs total
           </p>
-          <p className="text-emerald-500/80">
+          <p className="text-emerald-600/80">
             {result.subComponentsUpdated} sub-component{result.subComponentsUpdated !== 1 ? 's' : ''} updated
           </p>
         </div>

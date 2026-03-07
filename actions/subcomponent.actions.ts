@@ -9,6 +9,14 @@ export async function createSubComponent(data: {
   serialNumber: string;
   notes?: string;
 }) {
+  const existing = await prisma.subComponent.findUnique({
+    where: { serialNumber: data.serialNumber },
+  });
+
+  if (existing) {
+    throw new Error('A sub-component with this serial number already exists.');
+  }
+
   const subComponent = await prisma.subComponent.create({
     data: {
       type: data.type as SubComponentType,
@@ -29,6 +37,16 @@ export async function updateSubComponent(
     status?: string;
   }
 ) {
+  if (data.serialNumber !== undefined) {
+    const existing = await prisma.subComponent.findFirst({
+      where: { serialNumber: data.serialNumber, id: { not: id } },
+    });
+
+    if (existing) {
+      throw new Error('A sub-component with this serial number already exists.');
+    }
+  }
+
   const subComponent = await prisma.subComponent.update({
     where: { id },
     data: {

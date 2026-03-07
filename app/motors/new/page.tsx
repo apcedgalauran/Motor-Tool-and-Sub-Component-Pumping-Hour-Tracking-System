@@ -36,67 +36,67 @@ export default function NewMotorPage() {
   return (
     <div className="max-w-lg mx-auto animate-fade-in">
       <div className="mb-6">
-        <Link href="/motors" className="text-xs text-slate-500 hover:text-slate-300 transition-colors">
+        <Link href="/motors" className="text-xs text-[#333333] hover:text-[#121212] transition-colors">
           ← Back to Motors
         </Link>
-        <h1 className="text-2xl font-bold text-slate-100 tracking-tight mt-2">Add New Motor</h1>
+        <h1 className="text-2xl font-bold text-[#121212] tracking-tight mt-2">Add New Motor</h1>
       </div>
 
       <form onSubmit={handleSubmit} className="bg-[var(--card)] border border-[var(--border)] rounded-xl p-6 space-y-4">
         <div>
-          <label className="block text-xs text-slate-500 mb-1.5 uppercase tracking-wider">Motor Name / ID *</label>
+          <label className="block text-xs text-[#333333] mb-1.5 uppercase tracking-wider">Motor Name / ID *</label>
           <input
             name="name"
             required
             placeholder="e.g. Motor A"
-            className="w-full bg-[var(--background)] border border-[var(--border)] rounded-lg px-3 py-2.5 text-sm text-slate-200 placeholder:text-slate-600 focus:outline-none focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/20 transition-colors"
+            className="w-full bg-[#EBEBEB] border border-[var(--border)] rounded-lg px-3 py-3 md:py-2.5 text-sm text-[#333333] placeholder:text-[#A3A3A3] focus:outline-none focus:border-[#9E9EB0] focus:ring-1 focus:ring-[#9E9EB0]/30 transition-colors"
           />
         </div>
 
         <div>
-          <label className="block text-xs text-slate-500 mb-1.5 uppercase tracking-wider">Serial Number *</label>
+          <label className="block text-xs text-[#333333] mb-1.5 uppercase tracking-wider">Serial Number *</label>
           <input
             name="serialNumber"
             required
             placeholder="Unique serial number"
-            className="w-full bg-[var(--background)] border border-[var(--border)] rounded-lg px-3 py-2.5 text-sm text-slate-200 placeholder:text-slate-600 focus:outline-none focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/20 transition-colors"
+            className="w-full bg-[#EBEBEB] border border-[var(--border)] rounded-lg px-3 py-3 md:py-2.5 text-sm text-[#333333] placeholder:text-[#A3A3A3] focus:outline-none focus:border-[#9E9EB0] focus:ring-1 focus:ring-[#9E9EB0]/30 transition-colors"
           />
         </div>
 
         <div>
-          <label className="block text-xs text-slate-500 mb-1.5 uppercase tracking-wider">Location</label>
+          <label className="block text-xs text-[#333333] mb-1.5 uppercase tracking-wider">Location</label>
           <input
             name="location"
             placeholder="Deployment site"
-            className="w-full bg-[var(--background)] border border-[var(--border)] rounded-lg px-3 py-2.5 text-sm text-slate-200 placeholder:text-slate-600 focus:outline-none focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/20 transition-colors"
+            className="w-full bg-[#EBEBEB] border border-[var(--border)] rounded-lg px-3 py-3 md:py-2.5 text-sm text-[#333333] placeholder:text-[#A3A3A3] focus:outline-none focus:border-[#9E9EB0] focus:ring-1 focus:ring-[#9E9EB0]/30 transition-colors"
           />
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-3">
           <div>
-            <label className="block text-xs text-slate-500 mb-1.5 uppercase tracking-wider">Date Out</label>
+            <label className="block text-xs text-[#333333] mb-1.5 uppercase tracking-wider">Date Out</label>
             <input
               name="dateOut"
               type="date"
-              className="w-full bg-[var(--background)] border border-[var(--border)] rounded-lg px-3 py-2.5 text-sm text-slate-200 focus:outline-none focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/20 transition-colors"
+              className="w-full bg-[#EBEBEB] border border-[var(--border)] rounded-lg px-3 py-3 md:py-2.5 text-sm text-[#333333] focus:outline-none focus:border-[#9E9EB0] focus:ring-1 focus:ring-[#9E9EB0]/30 transition-colors"
             />
           </div>
           <div>
-            <label className="block text-xs text-slate-500 mb-1.5 uppercase tracking-wider">Date In</label>
+            <label className="block text-xs text-[#333333] mb-1.5 uppercase tracking-wider">Date In</label>
             <input
               name="dateIn"
               type="date"
-              className="w-full bg-[var(--background)] border border-[var(--border)] rounded-lg px-3 py-2.5 text-sm text-slate-200 focus:outline-none focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/20 transition-colors"
+              className="w-full bg-[#EBEBEB] border border-[var(--border)] rounded-lg px-3 py-3 md:py-2.5 text-sm text-[#333333] focus:outline-none focus:border-[#9E9EB0] focus:ring-1 focus:ring-[#9E9EB0]/30 transition-colors"
             />
           </div>
         </div>
 
         <div>
-          <label className="block text-xs text-slate-500 mb-1.5 uppercase tracking-wider">Status</label>
+          <label className="block text-xs text-[#333333] mb-1.5 uppercase tracking-wider">Status</label>
           <select
             name="status"
             defaultValue="ACTIVE"
-            className="w-full bg-[var(--background)] border border-[var(--border)] rounded-lg px-3 py-2.5 text-sm text-slate-200 focus:outline-none focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/20 transition-colors"
+            className="w-full bg-[#EBEBEB] border border-[var(--border)] rounded-lg px-3 py-2.5 text-sm text-[#333333] focus:outline-none focus:border-[#9E9EB0] focus:ring-1 focus:ring-[#9E9EB0]/30 transition-colors"
           >
             <option value="ACTIVE">Active</option>
             <option value="INACTIVE">Inactive</option>
@@ -105,7 +105,7 @@ export default function NewMotorPage() {
         </div>
 
         {error && (
-          <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-lg text-xs text-red-400">
+          <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-lg text-xs text-red-500">
             {error}
           </div>
         )}
@@ -113,7 +113,7 @@ export default function NewMotorPage() {
         <button
           type="submit"
           disabled={loading}
-          className="w-full bg-amber-500 hover:bg-amber-400 text-slate-950 font-semibold text-sm py-2.5 rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="w-full bg-[#9E9EB0] hover:bg-[#8A8A9F] text-white font-semibold text-sm py-3 md:py-2.5 rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {loading ? 'Creating...' : 'Create Motor'}
         </button>

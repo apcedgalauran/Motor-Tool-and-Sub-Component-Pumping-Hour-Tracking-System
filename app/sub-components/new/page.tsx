@@ -36,19 +36,19 @@ export default function NewSubComponentPage() {
   return (
     <div className="max-w-lg mx-auto animate-fade-in">
       <div className="mb-6">
-        <Link href="/sub-components" className="text-xs text-slate-500 hover:text-slate-300 transition-colors">
+        <Link href="/sub-components" className="text-xs text-[#333333] hover:text-[#121212] transition-colors">
           ← Back to Sub-Components
         </Link>
-        <h1 className="text-2xl font-bold text-slate-100 tracking-tight mt-2">Add Sub-Component</h1>
+        <h1 className="text-2xl font-bold text-[#121212] tracking-tight mt-2">Add Sub-Component</h1>
       </div>
 
       <form onSubmit={handleSubmit} className="bg-[var(--card)] border border-[var(--border)] rounded-xl p-6 space-y-4">
         <div>
-          <label className="block text-xs text-slate-500 mb-1.5 uppercase tracking-wider">Component Type *</label>
+          <label className="block text-xs text-[#333333] mb-1.5 uppercase tracking-wider">Component Type *</label>
           <select
             name="type"
             required
-            className="w-full bg-[var(--background)] border border-[var(--border)] rounded-lg px-3 py-2.5 text-sm text-slate-200 focus:outline-none focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/20 transition-colors"
+            className="w-full bg-[#EBEBEB] border border-[var(--border)] rounded-lg px-3 py-3 md:py-2.5 text-sm text-[#333333] focus:outline-none focus:border-[#9E9EB0] focus:ring-1 focus:ring-[#9E9EB0]/30 transition-colors"
           >
             <option value="">Select type...</option>
             {componentTypes.map(([value, label]) => (
@@ -58,27 +58,27 @@ export default function NewSubComponentPage() {
         </div>
 
         <div>
-          <label className="block text-xs text-slate-500 mb-1.5 uppercase tracking-wider">Serial Number *</label>
+          <label className="block text-xs text-[#333333] mb-1.5 uppercase tracking-wider">Serial Number *</label>
           <input
             name="serialNumber"
             required
             placeholder="Unique serial number"
-            className="w-full bg-[var(--background)] border border-[var(--border)] rounded-lg px-3 py-2.5 text-sm text-slate-200 placeholder:text-slate-600 focus:outline-none focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/20 transition-colors"
+            className="w-full bg-[#EBEBEB] border border-[var(--border)] rounded-lg px-3 py-3 md:py-2.5 text-sm text-[#333333] placeholder:text-[#A3A3A3] focus:outline-none focus:border-[#9E9EB0] focus:ring-1 focus:ring-[#9E9EB0]/30 transition-colors"
           />
         </div>
 
         <div>
-          <label className="block text-xs text-slate-500 mb-1.5 uppercase tracking-wider">Notes</label>
+          <label className="block text-xs text-[#333333] mb-1.5 uppercase tracking-wider">Notes</label>
           <textarea
             name="notes"
             rows={3}
             placeholder="Any additional notes..."
-            className="w-full bg-[var(--background)] border border-[var(--border)] rounded-lg px-3 py-2.5 text-sm text-slate-200 placeholder:text-slate-600 focus:outline-none focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/20 transition-colors resize-none"
+            className="w-full bg-[#EBEBEB] border border-[var(--border)] rounded-lg px-3 py-3 md:py-2.5 text-sm text-[#333333] placeholder:text-[#A3A3A3] focus:outline-none focus:border-[#9E9EB0] focus:ring-1 focus:ring-[#9E9EB0]/30 transition-colors resize-none"
           />
         </div>
 
         {error && (
-          <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-lg text-xs text-red-400">
+          <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-lg text-xs text-red-500">
             {error}
           </div>
         )}
@@ -86,7 +86,7 @@ export default function NewSubComponentPage() {
         <button
           type="submit"
           disabled={loading}
-          className="w-full bg-amber-500 hover:bg-amber-400 text-slate-950 font-semibold text-sm py-2.5 rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="w-full bg-[#9E9EB0] hover:bg-[#8A8A9F] text-white font-semibold text-sm py-3 md:py-2.5 rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {loading ? 'Creating...' : 'Create Sub-Component'}
         </button>
