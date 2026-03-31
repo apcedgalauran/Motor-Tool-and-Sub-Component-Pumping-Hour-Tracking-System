@@ -27,7 +27,6 @@ export const authConfig = {
             return token;
         },
         session({ session, token }) {
-            // @ts-expect-error NextAuth types assume id might not exist here
             session.user.id = token.id as string;
             return session;
         },

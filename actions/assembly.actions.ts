@@ -1,6 +1,7 @@
 'use server';
 
 import { prisma } from '@/lib/prisma';
+import type { Prisma } from '@prisma/client';
 import { revalidatePath } from 'next/cache';
 
 export async function assembleSubComponent(
@@ -72,7 +73,7 @@ export async function disassembleSubComponent(assemblyId: string) {
 }
 
 export async function disperseToolset(motorId: string) {
-  await prisma.$transaction(async (tx) => {
+  await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
     // Snapshot motor's current hours
     const motor = await tx.motor.findUniqueOrThrow({ where: { id: motorId } });
     const hoursAtRemoval = motor.pumpingHours;
