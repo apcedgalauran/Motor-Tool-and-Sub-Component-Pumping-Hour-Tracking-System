@@ -10,7 +10,7 @@
     "prisma:generate:dev": "prisma generate --schema=prisma/schema.sqlite.prisma",
     "prisma:migrate:dev": "prisma migrate dev --schema=prisma/schema.sqlite.prisma",
     "prisma:generate:prod": "prisma generate",
-    "prisma:migrate:prod": "prisma migrate deploy"
+    "prisma:migrate:prod": "prisma db push --schema=prisma/schema.prisma --accept-data-loss"
   },
   "dependencies": {
     "@prisma/adapter-better-sqlite3": "^7.4.2",
