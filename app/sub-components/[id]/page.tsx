@@ -11,7 +11,7 @@ export default async function SubComponentDetailPage({ params }: { params: Promi
   if (!sc) notFound();
 
   const label = SUB_COMPONENT_LABELS[sc.type as keyof typeof SUB_COMPONENT_LABELS] || sc.type;
-  const activeAssembly = sc.assemblies.find((a) => !a.dateRemoved);
+  const activeAssembly = sc.assemblies.find((a: any) => !a.dateRemoved);
   const isInstalled = !!activeAssembly;
 
   return (
@@ -86,7 +86,7 @@ export default async function SubComponentDetailPage({ params }: { params: Promi
                 </tr>
               </thead>
               <tbody>
-                {sc.assemblies.map((a) => (
+                {sc.assemblies.map((a: any) => (
                   <tr key={a.id} className="border-b border-[var(--border)] last:border-0">
                     <td className="py-2 pr-4">
                       <Link

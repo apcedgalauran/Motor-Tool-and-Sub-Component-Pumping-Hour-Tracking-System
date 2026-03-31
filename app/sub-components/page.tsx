@@ -23,7 +23,7 @@ export default async function SubComponentsPage() {
 
       {subComponents.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          {subComponents.map((sc, i) => {
+          {subComponents.map((sc: any, i: number) => {
             const currentMotor = sc.assemblies[0]?.motor;
             return (
               <Link
@@ -36,7 +36,7 @@ export default async function SubComponentsPage() {
                     <div className={`w-2 h-8 rounded-full ${sc.status === 'INSTALLED' ? 'bg-emerald-500' : 'bg-[#A3A3A3]'}`} />
                     <div>
                       <p className="text-sm font-medium text-[#333333]">
-                        {sc.type.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())}
+                        {sc.type.replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase())}
                       </p>
                       <p className="text-xs text-[#333333] font-mono">{sc.serialNumber}</p>
                       {currentMotor && (

@@ -12,13 +12,15 @@ export default async function MotorDetailPage({ params }: { params: Promise<{ id
   const motor = await getMotor(id);
   if (!motor) notFound();
 
-  const activeAssemblies = motor.assemblies.filter((a) => !a.dateRemoved);
+  const activeAssemblies = motor.assemblies.filter((a: any) => !a.dateRemoved);
 
-  const statusColor = {
+  const statusMap: Record<string, string> = {
     ACTIVE: 'text-emerald-600 bg-emerald-500/10 border-emerald-500/30',
-    INACTIVE: 'text-[#A3A3A3] bg-[#A3A3A3]/10 border-[#A3A3A3]/30',
+    INACTIVE: 'text-[#555555] bg-[#333333]/10 border-[#333333]/30',
     IN_MAINTENANCE: 'text-orange-600 bg-orange-500/10 border-orange-500/30',
-  }[motor.status] || 'text-[#A3A3A3] bg-[#A3A3A3]/10 border-[#A3A3A3]/30';
+  };
+
+  const statusColor = statusMap[motor.status] || 'text-[#A3A3A3] bg-[#A3A3A3]/10 border-[#A3A3A3]/30';
 
   return (
     <div className="animate-fade-in">
@@ -100,7 +102,7 @@ export default async function MotorDetailPage({ params }: { params: Promise<{ id
                     </tr>
                   </thead>
                   <tbody>
-                    {motor.hourLogs.map((log) => (
+                    {motor.hourLogs.map((log: any) => (
                       <tr key={log.id} className="border-b border-[var(--border)] last:border-0">
                         <td className="py-2 pr-4 text-[#333333]">{formatDate(log.createdAt)}</td>
                         <td className="py-2 pr-4 text-right text-[#121212] font-semibold">+{formatHours(log.hoursAdded)}</td>
