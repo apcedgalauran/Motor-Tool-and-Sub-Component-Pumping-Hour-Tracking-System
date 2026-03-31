@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createMotor } from '@/actions/motor.actions';
 import Link from 'next/link';
+import DateField from '@/components/DateField';
 
 export default function NewMotorPage() {
   const router = useRouter();
@@ -76,22 +77,8 @@ export default function NewMotorPage() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-3">
-          <div>
-            <label className="block text-xs text-[#333333] mb-1.5 uppercase tracking-wider">Date Out</label>
-            <input
-              name="dateOut"
-              type="date"
-              className="w-full bg-[#EBEBEB] border border-[var(--border)] rounded-lg px-3 py-3 md:py-2.5 text-sm text-[#333333] focus:outline-none focus:border-[#9E9EB0] focus:ring-1 focus:ring-[#9E9EB0]/30 transition-colors"
-            />
-          </div>
-          <div>
-            <label className="block text-xs text-[#333333] mb-1.5 uppercase tracking-wider">Date In</label>
-            <input
-              name="dateIn"
-              type="date"
-              className="w-full bg-[#EBEBEB] border border-[var(--border)] rounded-lg px-3 py-3 md:py-2.5 text-sm text-[#333333] focus:outline-none focus:border-[#9E9EB0] focus:ring-1 focus:ring-[#9E9EB0]/30 transition-colors"
-            />
-          </div>
+          <DateField name="dateOut" label="Date Out" placeholder="Select start date" />
+          <DateField name="dateIn" label="Date In" placeholder="Select return date" />
         </div>
 
         <div>

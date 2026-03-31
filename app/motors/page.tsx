@@ -9,14 +9,14 @@ export default async function MotorsPage() {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-8 animate-fade-in">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6 md:mb-8 animate-fade-in">
         <div>
           <h1 className="text-2xl font-bold text-[#121212] tracking-tight">Motors</h1>
           <p className="text-sm text-[#333333] mt-1">{motors.length} motor{motors.length !== 1 ? 's' : ''} registered</p>
         </div>
         <Link
           href="/motors/new"
-          className="bg-[#9E9EB0] hover:bg-[#8A8A9F] text-white font-semibold text-sm px-4 py-2.5 rounded-lg transition-all duration-200"
+          className="w-full md:w-auto text-center bg-[#9E9EB0] hover:bg-[#8A8A9F] text-white font-semibold text-sm px-4 py-3 md:py-2.5 rounded-lg transition-all duration-200"
         >
           + New Motor
         </Link>

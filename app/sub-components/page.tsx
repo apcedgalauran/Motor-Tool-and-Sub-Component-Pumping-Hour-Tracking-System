@@ -31,7 +31,7 @@ export default async function SubComponentsPage() {
                 href={`/sub-components/${sc.id}`}
                 className={`block hover:ring-1 hover:ring-[#9E9EB0]/30 rounded-lg transition-all animate-fade-in stagger-${Math.min(i + 1, 6)}`}
               >
-                <div className="bg-[var(--card)] border border-[var(--border)] rounded-lg px-4 py-3 flex items-center justify-between hover:border-[#9E9EB0]/30 transition-colors">
+                <div className="bg-[var(--card)] border border-[var(--border)] rounded-lg px-4 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 hover:border-[#9E9EB0]/30 transition-colors">
                   <div className="flex items-center gap-3">
                     <div className={`w-2 h-8 rounded-full ${sc.status === 'INSTALLED' ? 'bg-emerald-500' : 'bg-[#A3A3A3]'}`} />
                     <div>
@@ -46,7 +46,7 @@ export default async function SubComponentsPage() {
                       )}
                     </div>
                   </div>
-                  <div className="text-right">
+                  <div className="text-left sm:text-right w-full sm:w-auto">
                     <p className="text-sm font-semibold text-[#121212]">{sc.cumulativeHours.toFixed(1)} hrs</p>
                     <p className={`text-[10px] uppercase tracking-wider ${sc.status === 'INSTALLED' ? 'text-emerald-600' : 'text-[#333333]'}`}>
                       {sc.status === 'INSTALLED' ? 'Installed' : 'Available'}

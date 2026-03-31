@@ -44,9 +44,9 @@ export function AssemblyTable({
             {activeAssemblies.map((a) => (
               <div
                 key={a.id}
-                className="flex items-center justify-between bg-[var(--background)] border border-[var(--border)] rounded-lg px-4 py-3"
+                className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between bg-[var(--background)] border border-[var(--border)] rounded-lg px-4 py-3"
               >
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 min-w-0">
                   <div className="w-8 h-8 rounded-md bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-600 text-xs font-bold">
                     ◎
                   </div>
@@ -57,12 +57,12 @@ export function AssemblyTable({
                     <p className="text-xs text-[#333333] font-mono">{a.subComponent.serialNumber}</p>
                   </div>
                 </div>
-                <div className="flex items-center gap-4">
-                  <div className="text-right">
+                <div className="grid grid-cols-2 gap-3 sm:flex sm:items-center sm:gap-4 w-full sm:w-auto">
+                  <div className="text-left sm:text-right">
                     <p className="text-xs text-[#333333]">Lifetime</p>
                     <p className="text-sm font-semibold text-[#121212]">{formatHours(a.subComponent.cumulativeHours)} hrs</p>
                   </div>
-                  <div className="text-right">
+                  <div className="text-left sm:text-right">
                     <p className="text-xs text-[#333333]">Installed</p>
                     <p className="text-xs text-[#333333]">{formatDate(a.dateAssembled)}</p>
                   </div>
@@ -70,7 +70,7 @@ export function AssemblyTable({
                     <button
                       onClick={() => onDisassemble(a.id)}
                       disabled={disassembling === a.id}
-                      className="text-xs text-red-500 hover:text-red-600 border border-red-500/20 hover:border-red-500/40 rounded-md px-2.5 py-1.5 transition-colors disabled:opacity-50"
+                      className="col-span-2 sm:col-auto w-full sm:w-auto text-center text-xs text-red-500 hover:text-red-600 border border-red-500/20 hover:border-red-500/40 rounded-md px-2.5 py-1.5 transition-colors disabled:opacity-50"
                     >
                       {disassembling === a.id ? '...' : 'Remove'}
                     </button>
