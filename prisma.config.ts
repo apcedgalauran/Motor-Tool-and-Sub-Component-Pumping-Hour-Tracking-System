@@ -1,7 +1,7 @@
 import "dotenv/config";
 import { defineConfig } from "prisma/config";
 
-const isProd = process.env.NODE_ENV === "production" || !!process.env.DIRECT_URL;
+const isProd = process.env.NODE_ENV === "production" || !!process.env.VERCEL || process.env.DATABASE_URL?.startsWith("postgres");
 
 export default defineConfig({
   // Use the sqlite schema for local development (matches .env DATABASE_URL)
