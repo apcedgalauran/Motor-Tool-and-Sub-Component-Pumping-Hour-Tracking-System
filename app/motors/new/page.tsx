@@ -36,7 +36,10 @@ export default function NewMotorPage() {
   return (
     <div className="max-w-lg mx-auto animate-fade-in">
       <div className="mb-6">
-        <Link href="/motors" className="text-xs text-[#333333] hover:text-[#121212] transition-colors">
+        <Link
+          href="/motors"
+          className="inline-flex items-center gap-2 text-sm md:text-base font-semibold text-[#333333] hover:text-[#121212] border border-[var(--border)] rounded-lg px-3 py-2 hover:bg-[var(--card-hover)] transition-colors"
+        >
           ← Back to Motors
         </Link>
         <h1 className="text-2xl font-bold text-[#121212] tracking-tight mt-2">Add New Motor</h1>

@@ -26,7 +26,10 @@ export default async function MotorDetailPage({ params }: { params: Promise<{ id
     <div className="animate-fade-in">
       {/* Breadcrumb */}
       <div className="mb-6">
-        <Link href="/motors" className="text-xs text-[#333333] hover:text-[#121212] transition-colors">
+        <Link
+          href="/motors"
+          className="inline-flex items-center gap-2 text-sm md:text-base font-semibold text-[#333333] hover:text-[#121212] border border-[var(--border)] rounded-lg px-3 py-2 hover:bg-[var(--card-hover)] transition-colors"
+        >
           ← Back to Motors
         </Link>
       </div>

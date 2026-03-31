@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { signOut } from 'next-auth/react';
 import { usePathname } from 'next/navigation';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 const navItems = [
   { href: '/', label: 'Dashboard', icon: '◈' },
@@ -14,6 +14,27 @@ const navItems = [
 export function Sidebar() {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [pendingHref, setPendingHref] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!pendingHref) return;
+    const isDone = pendingHref === '/' ? pathname === '/' : pathname.startsWith(pendingHref);
+    if (isDone) {
+      setPendingHref(null);
+      setMobileOpen(false);
+    }
+  }, [pathname, pendingHref]);
+
+  const isNavigating = pendingHref !== null;
+
+  function handleNavClick(href: string) {
+    const isCurrent = href === '/' ? pathname === '/' : pathname.startsWith(href);
+    if (isCurrent) {
+      setMobileOpen(false);
+      return;
+    }
+    setPendingHref(href);
+  }
 
   return (
     <>
@@ -28,8 +49,9 @@ export function Sidebar() {
           </div>
         </div>
         <button
-          onClick={() => setMobileOpen(!mobileOpen)}
-          className="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-[#9E9EB0]/10 transition-colors text-[#333333]"
+          onClick={() => !isNavigating && setMobileOpen(!mobileOpen)}
+          disabled={isNavigating}
+          className="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-[#9E9EB0]/10 transition-colors text-[#333333] disabled:opacity-50"
         >
           {mobileOpen ? '✕' : '☰'}
         </button>
@@ -39,7 +61,7 @@ export function Sidebar() {
       {mobileOpen && (
         <div
           className="fixed inset-0 bg-black/30 z-40 md:hidden top-16"
-          onClick={() => setMobileOpen(false)}
+          onClick={() => !isNavigating && setMobileOpen(false)}
         />
       )}
 
@@ -73,7 +95,7 @@ export function Sidebar() {
                 <li key={item.href}>
                   <Link
                     href={item.href}
-                    onClick={() => setMobileOpen(false)}
+                    onClick={() => handleNavClick(item.href)}
                     className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all duration-200 ${isActive
                       ? 'bg-[#9E9EB0]/15 text-[#121212] border border-[#9E9EB0]/30 font-semibold'
                       : 'text-[#333333] hover:text-[#121212] hover:bg-[var(--card-hover)] border border-transparent'
@@ -81,6 +103,9 @@ export function Sidebar() {
                   >
                     <span className="text-base">{item.icon}</span>
                     <span className="font-medium">{item.label}</span>
+                    {pendingHref === item.href && (
+                      <span className="ml-auto text-[10px] text-[#333333]/70 animate-pulse">Loading...</span>
+                    )}
                   </Link>
                 </li>
               );
