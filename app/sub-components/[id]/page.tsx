@@ -12,7 +12,6 @@ export default async function SubComponentDetailPage({ params }: { params: Promi
 
   const label = SUB_COMPONENT_LABELS[sc.type as keyof typeof SUB_COMPONENT_LABELS] || sc.type;
   const activeAssembly = sc.assemblies.find((a) => !a.dateRemoved);
-  const pastAssemblies = sc.assemblies.filter((a) => a.dateRemoved);
   const isInstalled = !!activeAssembly;
 
   return (

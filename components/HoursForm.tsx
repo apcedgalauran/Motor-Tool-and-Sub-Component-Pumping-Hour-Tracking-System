@@ -9,7 +9,7 @@ type HoursFormProps = {
   currentHours: number;
 };
 
-export function HoursForm({ motorId, motorName, currentHours }: HoursFormProps) {
+export function HoursForm({ motorId, motorName }: HoursFormProps) {
   const [hours, setHours] = useState('');
   const [notes, setNotes] = useState('');
   const [rigName, setRigName] = useState('');

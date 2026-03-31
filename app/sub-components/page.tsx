@@ -1,5 +1,4 @@
 import { getSubComponents } from '@/actions/subcomponent.actions';
-import { SubComponentBadge } from '@/components/SubComponentBadge';
 import Link from 'next/link';
 
 export const dynamic = 'force-dynamic';

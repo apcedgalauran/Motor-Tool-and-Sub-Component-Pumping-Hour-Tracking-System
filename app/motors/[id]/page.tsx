@@ -1,6 +1,5 @@
 import { getMotor } from '@/actions/motor.actions';
 import { HoursForm } from '@/components/HoursForm';
-import { AssemblyTable } from '@/components/AssemblyTable';
 import { MotorDetailClient } from './MotorDetailClient';
 import { MOTOR_STATUS_LABELS, formatHours, formatDate } from '@/lib/utils';
 import Link from 'next/link';
