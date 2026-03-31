@@ -20,7 +20,7 @@ export async function logPumpingHours(
   if (!session?.user?.id) throw new Error('Not authenticated');
   const userId = session.user.id;
 
-  const result = await prisma.$transaction(async (tx) => {
+  const result = await prisma.$transaction(async (tx: any) => {
     // STEP 1: Increment motor's pumping hours
     const updatedMotor = await tx.motor.update({
       where: { id: motorId },
@@ -50,7 +50,7 @@ export async function logPumpingHours(
 
     // STEP 4: Cascade hours to all assembled sub-components
     const updatedSubComponents = await Promise.all(
-      activeAssemblies.map((assembly) =>
+      activeAssemblies.map((assembly: any) =>
         tx.subComponent.update({
           where: { id: assembly.subComponentId },
           data: { cumulativeHours: { increment: hoursAdded } },
