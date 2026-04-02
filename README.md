@@ -42,4 +42,8 @@ Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/bui
 	- `DATABASE_URL`: pooled Neon/Postgres runtime connection string.
 	- `DIRECT_URL`: non-pooled Postgres connection string used for migrations.
 - Prisma migration connection URL is configured in `prisma.config.ts` (Prisma v7+).
+- This repo intentionally keeps two migration histories:
+	- `prisma/migrations` for local SQLite development.
+	- `prisma/migrations-postgres` for Neon/PostgreSQL production deploys.
+- `prisma.config.ts` automatically switches schema and migration path by environment.
 - Do not use `prisma db push` in production; use migration files and `prisma migrate deploy`.

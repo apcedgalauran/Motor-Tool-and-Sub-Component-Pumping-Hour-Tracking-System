@@ -12,7 +12,8 @@ export default defineConfig({
   // In production (or when DIRECT_URL is present), use the primary Postgres schema.
   schema: isProd ? "prisma/schema.prisma" : "prisma/schema.sqlite.prisma",
   migrations: {
-    path: "prisma/migrations",
+    // Keep separate migration histories per provider.
+    path: isProd ? "prisma/migrations-postgres" : "prisma/migrations",
     // Seed command for `prisma db seed` (ts-node CommonJS)
     seed: 'ts-node --compiler-options {"module":"CommonJS"} prisma/seed.ts',
   },
