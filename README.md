@@ -41,5 +41,5 @@ Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/bui
 - Required Vercel environment variables:
 	- `DATABASE_URL`: pooled Neon/Postgres runtime connection string.
 	- `DIRECT_URL`: non-pooled Postgres connection string used for migrations.
-- Prisma datasource in `prisma/schema.prisma` is configured for both variables.
+- Prisma migration connection URL is configured in `prisma.config.ts` (Prisma v7+).
 - Do not use `prisma db push` in production; use migration files and `prisma migrate deploy`.
