@@ -23,8 +23,9 @@ export default async function SubComponentsPage() {
 
       {subComponents.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          {subComponents.map((sc: any, i: number) => {
+          {subComponents.map((sc, i: number) => {
             const currentMotor = sc.assemblies[0]?.motor;
+            const isInstalled = Boolean(currentMotor);
             return (
               <Link
                 key={sc.id}
@@ -33,7 +34,7 @@ export default async function SubComponentsPage() {
               >
                 <div className="bg-[var(--card)] border border-[var(--border)] rounded-lg px-4 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 hover:border-[#9E9EB0]/30 transition-colors">
                   <div className="flex items-center gap-3">
-                    <div className={`w-2 h-8 rounded-full ${sc.status === 'INSTALLED' ? 'bg-emerald-500' : 'bg-[#A3A3A3]'}`} />
+                    <div className={`w-2 h-8 rounded-full ${isInstalled ? 'bg-emerald-500' : 'bg-[#A3A3A3]'}`} />
                     <div>
                       <p className="text-sm font-medium text-[#333333]">
                         {sc.type.replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase())}
@@ -48,8 +49,8 @@ export default async function SubComponentsPage() {
                   </div>
                   <div className="text-left sm:text-right w-full sm:w-auto">
                     <p className="text-sm font-semibold text-[#121212]">{sc.cumulativeHours.toFixed(1)} hrs</p>
-                    <p className={`text-[10px] uppercase tracking-wider ${sc.status === 'INSTALLED' ? 'text-emerald-600' : 'text-[#333333]'}`}>
-                      {sc.status === 'INSTALLED' ? 'Installed' : 'Available'}
+                    <p className={`text-[10px] uppercase tracking-wider ${isInstalled ? 'text-emerald-600' : 'text-[#333333]'}`}>
+                      {isInstalled ? 'Installed' : 'Available'}
                     </p>
                   </div>
                 </div>

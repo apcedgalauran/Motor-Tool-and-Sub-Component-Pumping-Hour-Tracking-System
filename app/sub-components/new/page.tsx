@@ -6,21 +6,36 @@ import { createSubComponent } from '@/actions/subcomponent.actions';
 import { SUB_COMPONENT_LABELS } from '@/lib/utils';
 import Link from 'next/link';
 
+const CUSTOM_TYPE_OPTION = '__OTHER_CUSTOM__';
+
 export default function NewSubComponentPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [selectedType, setSelectedType] = useState('');
+  const [customType, setCustomType] = useState('');
+  const [customTypeError, setCustomTypeError] = useState('');
+
+  const isCustomTypeSelected = selectedType === CUSTOM_TYPE_OPTION;
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError('');
+    setCustomTypeError('');
+
+    const resolvedType = isCustomTypeSelected ? customType.trim() : selectedType;
+    if (isCustomTypeSelected && !resolvedType) {
+      setCustomTypeError('Please enter a component type.');
+      return;
+    }
+
     setLoading(true);
 
     const formData = new FormData(e.currentTarget);
 
     try {
       await createSubComponent({
-        type: formData.get('type') as string,
+        type: resolvedType,
         serialNumber: formData.get('serialNumber') as string,
         notes: (formData.get('notes') as string) || undefined,
       });
@@ -48,14 +63,48 @@ export default function NewSubComponentPage() {
           <select
             name="type"
             required
+            value={selectedType}
+            onChange={(e) => {
+              const nextType = e.target.value;
+              setSelectedType(nextType);
+              setError('');
+
+              if (nextType !== CUSTOM_TYPE_OPTION) {
+                setCustomType('');
+                setCustomTypeError('');
+              }
+            }}
             className="w-full bg-[#EBEBEB] border border-[var(--border)] rounded-lg px-3 py-3 md:py-2.5 text-sm text-[#333333] focus:outline-none focus:border-[#9E9EB0] focus:ring-1 focus:ring-[#9E9EB0]/30 transition-colors"
           >
             <option value="">Select type...</option>
             {componentTypes.map(([value, label]) => (
               <option key={value} value={value}>{label}</option>
             ))}
+            <option value={CUSTOM_TYPE_OPTION}>Other / Custom...</option>
           </select>
         </div>
+
+        {isCustomTypeSelected && (
+          <div className="animate-fade-in">
+            <label className="block text-xs text-[#333333] mb-1.5 uppercase tracking-wider">Custom Component Type *</label>
+            <input
+              name="customType"
+              value={customType}
+              onChange={(e) => {
+                setCustomType(e.target.value);
+                if (customTypeError && e.target.value.trim()) {
+                  setCustomTypeError('');
+                }
+              }}
+              placeholder="Enter component type name"
+              className="w-full bg-[#EBEBEB] border border-[var(--border)] rounded-lg px-3 py-3 md:py-2.5 text-sm text-[#333333] placeholder:text-[#A3A3A3] focus:outline-none focus:border-[#9E9EB0] focus:ring-1 focus:ring-[#9E9EB0]/30 transition-colors"
+              aria-invalid={!!customTypeError}
+            />
+            {customTypeError && (
+              <p className="mt-1.5 text-xs text-red-500">{customTypeError}</p>
+            )}
+          </div>
+        )}
 
         <div>
           <label className="block text-xs text-[#333333] mb-1.5 uppercase tracking-wider">Serial Number *</label>

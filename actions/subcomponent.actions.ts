@@ -1,7 +1,7 @@
 'use server';
 
 import { prisma } from '@/lib/prisma';
-import { SubComponentType } from '@prisma/client';
+import { updateSubComponentRecord } from '@/lib/subcomponent';
 import { revalidatePath } from 'next/cache';
 
 export async function createSubComponent(data: {
@@ -9,6 +9,11 @@ export async function createSubComponent(data: {
   serialNumber: string;
   notes?: string;
 }) {
+  const normalizedType = data.type.trim();
+  if (!normalizedType) {
+    throw new Error('Please enter a component type.');
+  }
+
   const existing = await prisma.subComponent.findUnique({
     where: { serialNumber: data.serialNumber },
   });
@@ -19,8 +24,9 @@ export async function createSubComponent(data: {
 
   const subComponent = await prisma.subComponent.create({
     data: {
-      type: data.type as SubComponentType,
+      type: normalizedType,
       serialNumber: data.serialNumber,
+      status: 'ACTIVE',
       notes: data.notes || null,
     },
   });
@@ -32,29 +38,13 @@ export async function createSubComponent(data: {
 export async function updateSubComponent(
   id: string,
   data: {
+    type?: string;
     serialNumber?: string;
     notes?: string;
     status?: string;
   }
 ) {
-  if (data.serialNumber !== undefined) {
-    const existing = await prisma.subComponent.findFirst({
-      where: { serialNumber: data.serialNumber, id: { not: id } },
-    });
-
-    if (existing) {
-      throw new Error('A sub-component with this serial number already exists.');
-    }
-  }
-
-  const subComponent = await prisma.subComponent.update({
-    where: { id },
-    data: {
-      ...(data.serialNumber !== undefined && { serialNumber: data.serialNumber }),
-      ...(data.notes !== undefined && { notes: data.notes || null }),
-      ...(data.status !== undefined && { status: data.status }),
-    },
-  });
+  const subComponent = await updateSubComponentRecord(id, data);
 
   revalidatePath('/sub-components');
   revalidatePath(`/sub-components/${id}`);

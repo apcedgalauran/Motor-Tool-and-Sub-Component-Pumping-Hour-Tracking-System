@@ -3,14 +3,14 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "prisma generate && next dev",
-    "build": "prisma generate && next build",
+    "dev": "npm run prisma:generate:dev && next dev",
+    "build": "prisma generate && prisma migrate deploy && next build",
     "start": "next start",
     "lint": "eslint",
     "prisma:generate:dev": "prisma generate --schema=prisma/schema.sqlite.prisma",
     "prisma:migrate:dev": "prisma migrate dev --schema=prisma/schema.sqlite.prisma",
     "prisma:generate:prod": "prisma generate",
-    "prisma:migrate:prod": "prisma db push --schema=prisma/schema.prisma --accept-data-loss"
+    "prisma:migrate:prod": "prisma migrate deploy --schema=prisma/schema.prisma"
   },
   "dependencies": {
     "@prisma/adapter-better-sqlite3": "^7.4.2",

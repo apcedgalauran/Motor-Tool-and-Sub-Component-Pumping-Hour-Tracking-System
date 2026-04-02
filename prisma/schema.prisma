@@ -4,29 +4,14 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  // Connection URL moved to `prisma.config.ts` for Prisma v7+.
-  // See https://pris.ly/d/config-datasource
+  url      = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 enum MotorStatus {
   ACTIVE
   INACTIVE
   IN_MAINTENANCE
-}
-
-enum SubComponentType {
-  STATOR_ADAPTER
-  SPLINE_MANDREL
-  ADJUSTING_RING
-  OFFSET_HOUSING
-  ROTOR_COUPLING
-  TRANS_SHAFT
-  SHAFT_COUPLING
-  ROTOR
-  STATOR
-  SLEEVE
-  FLOAT_SUB
-  LIFT_SUB
 }
 
 model Motor {
@@ -56,7 +41,7 @@ model User {
 
 model SubComponent {
   id              String           @id @default(cuid())
-  type            SubComponentType
+  type            String
   serialNumber    String           @unique
   cumulativeHours Float            @default(0)
   status          String           @default("AVAILABLE")

@@ -17,9 +17,7 @@ export default defineConfig({
     seed: 'ts-node --compiler-options {"module":"CommonJS"} prisma/seed.ts',
   },
   datasource: {
-    // Prisma v7+ reads connection URLs from prisma.config.ts for migrate/deploy.
-    // Use DIRECT_URL in production (matches schema's previous env var),
-    // fallback to DATABASE_URL for local setups or other providers.
+    // Use DIRECT_URL for production migrations and DATABASE_URL for local runtime.
     url: isProd ? process.env["DIRECT_URL"] || process.env["DATABASE_URL"] : process.env["DATABASE_URL"],
   },
 });

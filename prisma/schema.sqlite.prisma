@@ -13,21 +13,6 @@ enum MotorStatus {
   IN_MAINTENANCE
 }
 
-enum SubComponentType {
-  STATOR_ADAPTER
-  SPLINE_MANDREL
-  ADJUSTING_RING
-  OFFSET_HOUSING
-  ROTOR_COUPLING
-  TRANS_SHAFT
-  SHAFT_COUPLING
-  ROTOR
-  STATOR
-  SLEEVE
-  FLOAT_SUB
-  LIFT_SUB
-}
-
 model Motor {
   id            String      @id @default(cuid())
   name          String
@@ -55,7 +40,7 @@ model User {
 
 model SubComponent {
   id              String           @id @default(cuid())
-  type            SubComponentType
+  type            String
   serialNumber    String           @unique
   cumulativeHours Float            @default(0)
   status          String           @default("AVAILABLE")
