@@ -37,11 +37,15 @@ Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/bui
 
 ### Production Database Notes
 
-- Build command should run migrations before build: `prisma migrate deploy && next build`.
+- Vercel build command should run migrations before build: `npm run prisma:migrate:prod && npm run build`.
 - Required Vercel environment variables:
 	- `DATABASE_URL`: pooled Neon/Postgres runtime connection string.
 	- `DIRECT_URL`: non-pooled Postgres connection string used for migrations.
 - Prisma migration connection URL is configured in `prisma.config.ts` (Prisma v7+).
+- `prisma:migrate:prod` uses `scripts/prisma-migrate-prod.cjs`.
+	- It runs `prisma migrate deploy` first.
+	- If Prisma returns `P3005` (existing non-empty schema), it baselines the initial Postgres migration with `prisma migrate resolve --applied <migration>` and retries deploy.
+	- Baseline migration id defaults to `20260402130000_init` and can be overridden with `PRISMA_BASELINE_MIGRATION`.
 - This repo intentionally keeps two migration histories:
 	- `prisma/migrations` for local SQLite development.
 	- `prisma/migrations-postgres` for Neon/PostgreSQL production deploys.
