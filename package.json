@@ -5,8 +5,10 @@
   "scripts": {
     "dev": "npm run prisma:generate:dev && next dev",
     "build": "prisma generate && next build",
+    "vercel-build": "npm run prisma:migrate:prod && npm run build",
     "start": "next start",
     "lint": "eslint",
+    "import:data": "node importData.mjs",
     "prisma:generate:dev": "prisma generate --schema=prisma/schema.sqlite.prisma",
     "prisma:migrate:dev": "prisma migrate dev --schema=prisma/schema.sqlite.prisma",
     "prisma:generate:prod": "prisma generate",
@@ -21,23 +23,29 @@
     "dotenv": "^17.3.1",
     "next": "16.1.6",
     "next-auth": "^5.0.0-beta.30",
+    "pdf-lib": "^1.17.1",
     "pg": "^8.20.0",
     "react": "19.2.3",
     "react-dom": "19.2.3"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
+    "@testing-library/dom": "^10.4.1",
+    "@testing-library/react": "^16.3.2",
     "@types/bcryptjs": "^2.4.6",
     "@types/node": "^20",
     "@types/pg": "^8.18.0",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@vitejs/plugin-react": "^6.0.1",
     "eslint": "^9",
     "eslint-config-next": "16.1.6",
+    "jsdom": "^29.0.2",
     "prisma": "^7.4.2",
     "tailwindcss": "^4",
     "ts-node": "^10.9.2",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^4.1.4"
   },
   "prisma": {
     "seed": "ts-node --compiler-options {\"module\":\"CommonJS\"} prisma/seed.ts"

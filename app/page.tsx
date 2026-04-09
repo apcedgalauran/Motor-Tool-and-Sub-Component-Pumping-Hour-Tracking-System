@@ -1,15 +1,23 @@
 import { getMotors } from '@/actions/motor.actions';
+import { getCustomStatuses } from '@/actions/custom-status.actions';
 import { MotorCard } from '@/components/MotorCard';
+import {
+  STANDARD_MOTOR_STATUSES,
+  MOTOR_STATUS_LABELS,
+  MOTOR_STATUS_COLORS,
+} from '@/lib/utils';
 import Link from 'next/link';
 
 export const dynamic = 'force-dynamic';
 
 export default async function DashboardPage() {
-  const motors = await getMotors();
+  const [motors, customStatuses] = await Promise.all([
+    getMotors(),
+    getCustomStatuses(),
+  ]);
 
   const totalMotors = motors.length;
-  const activeMotors = motors.filter((m) => m.status === 'ACTIVE').length;
-  const totalHours = motors.reduce((sum, m) => sum + m.pumpingHours, 0);
+  const onLocationMotors = motors.filter((m) => m.status === 'ON_LOCATION').length;
   const totalParts = motors.reduce((sum, m) => sum + m._count.assemblies, 0);
 
   return (
@@ -28,15 +36,39 @@ export default async function DashboardPage() {
         </Link>
       </div>
 
-      {/* Stats grid */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-8 animate-fade-in stagger-1">
-        <StatCard label="Total Motors" value={totalMotors.toString()} accent={false} />
-        <StatCard label="Active" value={activeMotors.toString()} accent={false} />
-        <StatCard label="Total Hours" value={totalHours.toFixed(1)} accent={true} />
-        <StatCard label="Assembled Parts" value={totalParts.toString()} accent={false} />
+      {/* Stats grid — 3 cards (Total Hours removed) */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6 animate-fade-in stagger-1">
+        <StatCard label="Total Motors" value={totalMotors.toString()} />
+        <StatCard label="On Location" value={onLocationMotors.toString()} />
+        <StatCard label="Assembled Parts" value={totalParts.toString()} />
       </div>
 
-      {/* Active Motors Grid */}
+      {/* Status Legend */}
+      <div className="bg-[var(--card)] border border-[var(--border)] rounded-xl p-4 mb-8 animate-fade-in stagger-2">
+        <p className="text-[10px] text-[#333333] uppercase tracking-wider mb-3 font-medium">Status Legend</p>
+        <div className="flex flex-wrap gap-x-5 gap-y-2">
+          {STANDARD_MOTOR_STATUSES.map((s) => (
+            <div key={s} className="flex items-center gap-2">
+              <span
+                className="inline-block w-2.5 h-2.5 rounded-full flex-shrink-0"
+                style={{ backgroundColor: MOTOR_STATUS_COLORS[s] }}
+              />
+              <span className="text-xs text-[#333333]">{MOTOR_STATUS_LABELS[s]}</span>
+            </div>
+          ))}
+          {customStatuses.map((cs) => (
+            <div key={cs.id} className="flex items-center gap-2">
+              <span
+                className="inline-block w-2.5 h-2.5 rounded-full flex-shrink-0"
+                style={{ backgroundColor: cs.color }}
+              />
+              <span className="text-xs text-[#333333]">{cs.label}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Motors Grid */}
       {motors.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {motors.map((motor, i) => (
@@ -46,6 +78,7 @@ export default async function DashboardPage() {
                 name={motor.name}
                 serialNumber={motor.serialNumber}
                 status={motor.status}
+                statusColor={motor.customStatus?.color}
                 location={motor.location}
                 pumpingHours={motor.pumpingHours}
                 assembledCount={motor._count.assemblies}
@@ -69,13 +102,11 @@ export default async function DashboardPage() {
   );
 }
 
-function StatCard({ label, value, accent }: { label: string; value: string; accent: boolean }) {
+function StatCard({ label, value }: { label: string; value: string }) {
   return (
     <div className="bg-[var(--card)] border border-[var(--border)] rounded-xl p-3 md:p-4">
       <p className="text-[10px] text-[#333333] uppercase tracking-wider mb-1">{label}</p>
-      <p className={`text-xl font-bold tracking-tight ${accent ? 'text-[#121212]' : 'text-[#333333]'}`}>
-        {value}
-      </p>
+      <p className="text-xl font-bold tracking-tight text-[#333333]">{value}</p>
     </div>
   );
 }

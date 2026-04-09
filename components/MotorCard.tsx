@@ -1,11 +1,12 @@
 import Link from 'next/link';
-import { MOTOR_STATUS_LABELS, formatHours } from '@/lib/utils';
+import { getStatusLabel, getStatusColor, formatHours } from '@/lib/utils';
 
 type MotorCardProps = {
   id: string;
   name: string;
   serialNumber: string;
   status: string;
+  statusColor?: string | null;
   location: string | null;
   pumpingHours: number;
   assembledCount: number;
@@ -16,15 +17,13 @@ export function MotorCard({
   name,
   serialNumber,
   status,
+  statusColor: customColor,
   location,
   pumpingHours,
   assembledCount,
 }: MotorCardProps) {
-  const statusColor = {
-    ACTIVE: 'text-emerald-600 bg-emerald-500/10 border-emerald-500/30',
-    INACTIVE: 'text-[#A3A3A3] bg-[#A3A3A3]/10 border-[#A3A3A3]/30',
-    IN_MAINTENANCE: 'text-orange-600 bg-orange-500/10 border-orange-500/30',
-  }[status] || 'text-[#A3A3A3] bg-[#A3A3A3]/10 border-[#A3A3A3]/30';
+  const dotColor = getStatusColor(status, customColor);
+  const label = getStatusLabel(status);
 
   return (
     <Link
@@ -38,8 +37,12 @@ export function MotorCard({
           </h3>
           <p className="text-xs text-[#333333] mt-0.5 font-mono">{serialNumber}</p>
         </div>
-        <span className={`text-[10px] uppercase tracking-wider px-2 py-1 rounded-md border font-semibold ${statusColor}`}>
-          {MOTOR_STATUS_LABELS[status] || status}
+        <span className="flex items-center gap-1.5 text-[10px] uppercase tracking-wider px-2 py-1 rounded-md border font-semibold bg-[#f5f5f5] border-[#ddd] text-[#333333]">
+          <span
+            className="inline-block w-2 h-2 rounded-full flex-shrink-0"
+            style={{ backgroundColor: dotColor }}
+          />
+          {label}
         </span>
       </div>
 

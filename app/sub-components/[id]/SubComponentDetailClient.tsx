@@ -95,9 +95,10 @@ export function SubComponentDetailClient({ initialSubComponent }: { initialSubCo
 
   const typeLabel = SUB_COMPONENT_LABELS[subComponent.type as keyof typeof SUB_COMPONENT_LABELS] || subComponent.type;
   const componentStatus = toEditableSubComponentStatus(subComponent.status);
+  const successBadgeClass = 'text-emerald-700 bg-emerald-500/10 border-emerald-500/30';
 
   const componentStatusStyleMap: Record<EditableSubComponentStatus, string> = {
-    ACTIVE: 'text-emerald-700 bg-emerald-500/10 border-emerald-500/30',
+    ACTIVE: successBadgeClass,
     IN_MAINTENANCE: 'text-orange-700 bg-orange-500/10 border-orange-500/30',
     RETIRED: 'text-red-600 bg-red-500/10 border-red-500/30',
   };
@@ -249,7 +250,7 @@ export function SubComponentDetailClient({ initialSubComponent }: { initialSubCo
               <span
                 className={`text-[10px] uppercase tracking-wider px-2 py-1 rounded-md border font-semibold ${
                   isInstalled
-                    ? 'text-emerald-600 bg-emerald-500/10 border-emerald-500/30'
+                    ? successBadgeClass
                     : 'text-[#333333] bg-[#A3A3A3]/10 border-[#A3A3A3]/30'
                 }`}
               >

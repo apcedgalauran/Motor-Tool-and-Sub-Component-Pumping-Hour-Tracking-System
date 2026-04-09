@@ -34,7 +34,7 @@ export function SubComponentBadge({ type, serialNumber, cumulativeHours, status,
       </div>
       <div className="text-right">
         <p className="text-sm font-semibold text-[#121212]">{cumulativeHours.toFixed(1)} hrs</p>
-        <p className={`text-[10px] uppercase tracking-wider ${isInstalled ? 'text-emerald-600' : 'text-[#333333]'}`}>
+        <p className={`text-[10px] uppercase tracking-wider ${isInstalled ? 'text-emerald-700' : 'text-[#333333]'}`}>
           {isInstalled ? 'Installed' : 'Available'}
         </p>
       </div>

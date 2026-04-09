@@ -31,6 +31,7 @@ export default async function MotorsPage() {
                 name={motor.name}
                 serialNumber={motor.serialNumber}
                 status={motor.status}
+                statusColor={motor.customStatus?.color}
                 location={motor.location}
                 pumpingHours={motor.pumpingHours}
                 assembledCount={motor._count.assemblies}

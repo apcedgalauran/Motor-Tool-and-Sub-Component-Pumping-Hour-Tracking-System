@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { createMotor } from '@/actions/motor.actions';
 import Link from 'next/link';
 import DateField from '@/components/DateField';
+import { StatusSelector } from '@/components/StatusSelector';
 
 export default function NewMotorPage() {
   const router = useRouter();
@@ -25,7 +26,8 @@ export default function NewMotorPage() {
         location: (formData.get('location') as string) || undefined,
         dateOut: (formData.get('dateOut') as string) || undefined,
         dateIn: (formData.get('dateIn') as string) || undefined,
-        status: (formData.get('status') as 'ACTIVE' | 'INACTIVE' | 'IN_MAINTENANCE') || 'ACTIVE',
+        status: (formData.get('status') as string) || 'ON_LOCATION',
+        customStatusId: (formData.get('customStatusId') as string) || undefined,
       });
       router.push('/motors');
     } catch (err) {
@@ -48,21 +50,21 @@ export default function NewMotorPage() {
 
       <form onSubmit={handleSubmit} className="bg-[var(--card)] border border-[var(--border)] rounded-xl p-6 space-y-4">
         <div>
-          <label className="block text-xs text-[#333333] mb-1.5 uppercase tracking-wider">Motor Name / ID *</label>
-          <input
-            name="name"
-            required
-            placeholder="e.g. Motor A"
-            className="w-full bg-[#EBEBEB] border border-[var(--border)] rounded-lg px-3 py-3 md:py-2.5 text-sm text-[#333333] placeholder:text-[#A3A3A3] focus:outline-none focus:border-[#9E9EB0] focus:ring-1 focus:ring-[#9E9EB0]/30 transition-colors"
-          />
-        </div>
-
-        <div>
           <label className="block text-xs text-[#333333] mb-1.5 uppercase tracking-wider">Serial Number *</label>
           <input
             name="serialNumber"
             required
             placeholder="Unique serial number"
+            className="w-full bg-[#EBEBEB] border border-[var(--border)] rounded-lg px-3 py-3 md:py-2.5 text-base md:text-lg font-semibold font-mono tracking-wide text-[#1F1F1F] placeholder:text-[#A3A3A3] focus:outline-none focus:border-[#9E9EB0] focus:ring-1 focus:ring-[#9E9EB0]/30 transition-colors"
+          />
+        </div>
+
+        <div>
+          <label className="block text-xs text-[#333333] mb-1.5 uppercase tracking-wider">Motor Name / ID *</label>
+          <input
+            name="name"
+            required
+            placeholder="e.g. Motor A"
             className="w-full bg-[#EBEBEB] border border-[var(--border)] rounded-lg px-3 py-3 md:py-2.5 text-sm text-[#333333] placeholder:text-[#A3A3A3] focus:outline-none focus:border-[#9E9EB0] focus:ring-1 focus:ring-[#9E9EB0]/30 transition-colors"
           />
         </div>
@@ -81,18 +83,7 @@ export default function NewMotorPage() {
           <DateField name="dateIn" label="Date In" placeholder="Select return date" />
         </div>
 
-        <div>
-          <label className="block text-xs text-[#333333] mb-1.5 uppercase tracking-wider">Status</label>
-          <select
-            name="status"
-            defaultValue="ACTIVE"
-            className="w-full bg-[#EBEBEB] border border-[var(--border)] rounded-lg px-3 py-2.5 text-sm text-[#333333] focus:outline-none focus:border-[#9E9EB0] focus:ring-1 focus:ring-[#9E9EB0]/30 transition-colors"
-          >
-            <option value="ACTIVE">Active</option>
-            <option value="INACTIVE">Inactive</option>
-            <option value="IN_MAINTENANCE">In Maintenance</option>
-          </select>
-        </div>
+        <StatusSelector />
 
         {error && (
           <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-lg text-xs text-red-500">

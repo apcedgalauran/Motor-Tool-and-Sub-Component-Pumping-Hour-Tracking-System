@@ -41,7 +41,7 @@ export default async function SubComponentsPage() {
                       </p>
                       <p className="text-xs text-[#333333] font-mono">{sc.serialNumber}</p>
                       {currentMotor && (
-                        <p className="text-[10px] text-emerald-600 mt-0.5">
+                        <p className="text-[10px] text-emerald-700 mt-0.5">
                           Installed in {currentMotor.name}
                         </p>
                       )}
@@ -49,7 +49,7 @@ export default async function SubComponentsPage() {
                   </div>
                   <div className="text-left sm:text-right w-full sm:w-auto">
                     <p className="text-sm font-semibold text-[#121212]">{sc.cumulativeHours.toFixed(1)} hrs</p>
-                    <p className={`text-[10px] uppercase tracking-wider ${isInstalled ? 'text-emerald-600' : 'text-[#333333]'}`}>
+                    <p className={`text-[10px] uppercase tracking-wider ${isInstalled ? 'text-emerald-700' : 'text-[#333333]'}`}>
                       {isInstalled ? 'Installed' : 'Available'}
                     </p>
                   </div>

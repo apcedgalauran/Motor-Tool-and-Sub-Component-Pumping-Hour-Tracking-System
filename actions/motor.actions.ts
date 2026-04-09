@@ -1,7 +1,6 @@
 'use server';
 
 import { prisma } from '@/lib/prisma';
-import { MotorStatus } from '@prisma/client';
 import { revalidatePath } from 'next/cache';
 
 export async function createMotor(data: {
@@ -10,7 +9,8 @@ export async function createMotor(data: {
   location?: string;
   dateOut?: string;
   dateIn?: string;
-  status?: MotorStatus;
+  status?: string;
+  customStatusId?: string;
 }) {
   const existing = await prisma.motor.findUnique({
     where: { serialNumber: data.serialNumber },
@@ -27,7 +27,8 @@ export async function createMotor(data: {
       location: data.location || null,
       dateOut: data.dateOut ? new Date(data.dateOut) : null,
       dateIn: data.dateIn ? new Date(data.dateIn) : null,
-      status: data.status || 'ACTIVE',
+      status: data.status || 'ON_LOCATION',
+      customStatusId: data.customStatusId || null,
     },
   });
 
@@ -44,7 +45,8 @@ export async function updateMotor(
     location?: string;
     dateOut?: string | null;
     dateIn?: string | null;
-    status?: MotorStatus;
+    status?: string;
+    customStatusId?: string | null;
   }
 ) {
   if (data.serialNumber !== undefined) {
@@ -66,6 +68,7 @@ export async function updateMotor(
       ...(data.dateOut !== undefined && { dateOut: data.dateOut ? new Date(data.dateOut) : null }),
       ...(data.dateIn !== undefined && { dateIn: data.dateIn ? new Date(data.dateIn) : null }),
       ...(data.status !== undefined && { status: data.status }),
+      ...(data.customStatusId !== undefined && { customStatusId: data.customStatusId || null }),
     },
   });
 
@@ -94,6 +97,7 @@ export async function deleteMotor(id: string) {
 export async function getMotors() {
   return prisma.motor.findMany({
     include: {
+      customStatus: true,
       assemblies: {
         where: { dateRemoved: null },
         include: { subComponent: true },
@@ -113,12 +117,17 @@ export async function getMotor(id: string) {
   return prisma.motor.findUnique({
     where: { id },
     include: {
+      customStatus: true,
       assemblies: {
         include: { subComponent: true },
         orderBy: { dateAssembled: 'desc' },
       },
       hourLogs: {
         orderBy: { createdAt: 'desc' },
+        include: { user: { select: { name: true } } },
+      },
+      editLogs: {
+        orderBy: { editedAt: 'desc' },
         include: { user: { select: { name: true } } },
       },
     },

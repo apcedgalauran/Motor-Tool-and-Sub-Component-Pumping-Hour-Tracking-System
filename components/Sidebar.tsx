@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { signOut } from 'next-auth/react';
 import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
+import { ExportDataModal } from './ExportDataModal';
 
 const navItems = [
   { href: '/', label: 'Dashboard', icon: '◈' },
@@ -15,6 +16,9 @@ export function Sidebar() {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [pendingHref, setPendingHref] = useState<string | null>(null);
+  const [isExportOpen, setIsExportOpen] = useState(false);
+  const footerActionButtonClass =
+    'w-full min-h-10 text-center border border-[var(--border)] bg-transparent text-sm font-semibold font-mono text-[#333333] rounded-md py-2 hover:bg-[var(--card-hover)] transition-colors';
 
   useEffect(() => {
     if (!pendingHref) return;
@@ -118,31 +122,29 @@ export function Sidebar() {
           <div className="text-[10px] text-[#333333] uppercase tracking-wider mb-2">
             Export Data
           </div>
-          <div className="flex gap-2">
-            <a
-              href="/api/export?type=motors"
-              className="flex-1 text-center text-[10px] text-[#333333] hover:text-[#9E9EB0] border border-[var(--border)] hover:border-[#9E9EB0]/50 rounded-md py-1.5 transition-colors"
-            >
-              Motors CSV
-            </a>
-            <a
-              href="/api/export?type=sub-components"
-              className="flex-1 text-center text-[10px] text-[#333333] hover:text-[#9E9EB0] border border-[var(--border)] hover:border-[#9E9EB0]/50 rounded-md py-1.5 transition-colors"
-            >
-              Parts CSV
-            </a>
-          </div>
+          <button
+            type="button"
+            onClick={() => {
+              setIsExportOpen(true);
+              setMobileOpen(false);
+            }}
+            className={footerActionButtonClass}
+          >
+            Export Data
+          </button>
           <div className="text-[10px] text-[#A3A3A3] mt-2">v1.0</div>
           <div className="mt-3">
             <button
               onClick={() => signOut({ callbackUrl: '/login' })}
-              className="w-full text-[10px] text-[#333333] hover:text-[#9E9EB0] border border-[var(--border)] hover:border-[#9E9EB0]/50 rounded-md py-1.5 transition-colors"
+              className={footerActionButtonClass}
             >
               Sign Out
             </button>
           </div>
         </div>
       </aside>
+
+      <ExportDataModal isOpen={isExportOpen} onClose={() => setIsExportOpen(false)} />
     </>
   );
 }

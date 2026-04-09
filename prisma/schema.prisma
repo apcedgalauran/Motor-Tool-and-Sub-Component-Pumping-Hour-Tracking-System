@@ -7,26 +7,33 @@ datasource db {
   // Connection URL moved to `prisma.config.ts` for Prisma v7+.
 }
 
-enum MotorStatus {
-  ACTIVE
-  INACTIVE
-  IN_MAINTENANCE
+model Motor {
+  id              String        @id @default(cuid())
+  name            String
+  serialNumber    String        @unique
+  location        String?
+  dateOut         DateTime?
+  dateIn          DateTime?
+  status          String        @default("ON_LOCATION")
+  customStatusId  String?
+  pumpingHours    Float         @default(0)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  customStatus CustomStatus? @relation(fields: [customStatusId], references: [id])
+  assemblies   Assembly[]
+  hourLogs     HourLog[]
+  editLogs     MotorEditLog[]
 }
 
-model Motor {
-  id            String      @id @default(cuid())
-  name          String
-  serialNumber  String      @unique
-  location      String?
-  dateOut       DateTime?
-  dateIn        DateTime?
-  status        MotorStatus @default(ACTIVE)
-  pumpingHours  Float       @default(0)
-  createdAt     DateTime    @default(now())
-  updatedAt     DateTime    @updatedAt
+model CustomStatus {
+  id          String   @id @default(cuid())
+  label       String   @unique
+  color       String
+  isPermanent Boolean  @default(true)
+  createdAt   DateTime @default(now())
 
-  assemblies Assembly[]
-  hourLogs   HourLog[]
+  motors Motor[]
 }
 
 model User {
@@ -36,6 +43,7 @@ model User {
   passwordHash  String
   createdAt     DateTime   @default(now())
   hourLogs      HourLog[]
+  motorEditLogs MotorEditLog[]
 }
 
 model SubComponent {
@@ -80,4 +88,18 @@ model HourLog {
 
   motor Motor @relation(fields: [motorId], references: [id])
   user  User? @relation(fields: [userId], references: [id])
+}
+
+model MotorEditLog {
+  id            String   @id @default(cuid())
+  motorId       String
+  userId        String
+  editedAt      DateTime @default(now())
+  changedFields Json
+
+  motor Motor @relation(fields: [motorId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id])
+
+  @@index([motorId, editedAt])
+  @@index([userId, editedAt])
 }
