@@ -1,5 +1,6 @@
 'use server';
 
+import { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
 
@@ -114,22 +115,66 @@ export async function getMotors() {
 }
 
 export async function getMotor(id: string) {
-  return prisma.motor.findUnique({
-    where: { id },
-    include: {
-      customStatus: true,
-      assemblies: {
-        include: { subComponent: true },
-        orderBy: { dateAssembled: 'desc' },
+  try {
+    return await prisma.motor.findUnique({
+      where: { id },
+      include: {
+        customStatus: true,
+        assemblies: {
+          include: { subComponent: true },
+          orderBy: { dateAssembled: 'desc' },
+        },
+        hourLogs: {
+          orderBy: { createdAt: 'desc' },
+          include: { user: { select: { name: true } } },
+        },
+        editLogs: {
+          orderBy: { editedAt: 'desc' },
+          include: { user: { select: { name: true } } },
+        },
+        files: {
+          orderBy: { createdAt: 'desc' },
+          include: {
+            uploader: {
+              select: { id: true, name: true },
+            },
+          },
+        },
       },
-      hourLogs: {
-        orderBy: { createdAt: 'desc' },
-        include: { user: { select: { name: true } } },
-      },
-      editLogs: {
-        orderBy: { editedAt: 'desc' },
-        include: { user: { select: { name: true } } },
-      },
-    },
-  });
+    });
+  } catch (error) {
+    if (
+      error instanceof Prisma.PrismaClientValidationError
+      && error.message.includes('Unknown field `files`')
+      && error.message.includes('model `Motor`')
+    ) {
+      const legacyMotor = await prisma.motor.findUnique({
+        where: { id },
+        include: {
+          customStatus: true,
+          assemblies: {
+            include: { subComponent: true },
+            orderBy: { dateAssembled: 'desc' },
+          },
+          hourLogs: {
+            orderBy: { createdAt: 'desc' },
+            include: { user: { select: { name: true } } },
+          },
+          editLogs: {
+            orderBy: { editedAt: 'desc' },
+            include: { user: { select: { name: true } } },
+          },
+        },
+      });
+
+      if (!legacyMotor) return null;
+
+      return {
+        ...legacyMotor,
+        files: [],
+      };
+    }
+
+    throw error;
+  }
 }

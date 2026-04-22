@@ -1,6 +1,7 @@
 import { getMotor } from '@/actions/motor.actions';
 import { HoursForm } from '@/components/HoursForm';
 import { MotorEditHistorySection } from '@/components/MotorEditHistorySection';
+import { MotorFilesSection } from '@/components/MotorFilesSection';
 import { MotorInlineEditor } from '@/components/MotorInlineEditor';
 import { MotorDetailClient } from './MotorDetailClient';
 import { formatHours, formatDate } from '@/lib/utils';
@@ -102,6 +103,11 @@ export default async function MotorDetailPage({ params }: { params: Promise<{ id
               <p className="text-sm text-[#333333] text-center py-6">No hours logged yet</p>
             )}
           </div>
+
+          <MotorFilesSection
+            motorId={motor.id}
+            initialFiles={JSON.parse(JSON.stringify(motor.files ?? []))}
+          />
 
           <MotorEditHistorySection editLogs={motor.editLogs} />
         </div>

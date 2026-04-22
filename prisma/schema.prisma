@@ -25,6 +25,7 @@ model Motor {
   hourLogs              HourLog[]
   editLogs              MotorEditLog[]
   subComponentHourLogs  SubComponentHourLog[]
+  files                 MotorFile[]
 }
 
 model CustomStatus {
@@ -46,6 +47,7 @@ model User {
   hourLogs              HourLog[]
   motorEditLogs         MotorEditLog[]
   subComponentHourLogs  SubComponentHourLog[]
+  uploadedMotorFiles    MotorFile[] @relation("MotorFileUploader")
 }
 
 model SubComponent {
@@ -126,4 +128,21 @@ model SubComponentHourLog {
   @@index([subComponentId, createdAt])
   @@index([motorId, createdAt])
   @@index([userId, createdAt])
+}
+
+model MotorFile {
+  id         String   @id @default(cuid())
+  motorId    String
+  fileName   String
+  fileSize   Int
+  mimeType   String
+  storageUrl String
+  uploadedBy String
+  createdAt  DateTime @default(now())
+
+  motor    Motor @relation(fields: [motorId], references: [id], onDelete: Cascade)
+  uploader User  @relation("MotorFileUploader", fields: [uploadedBy], references: [id])
+
+  @@index([motorId, createdAt])
+  @@index([uploadedBy, createdAt])
 }
