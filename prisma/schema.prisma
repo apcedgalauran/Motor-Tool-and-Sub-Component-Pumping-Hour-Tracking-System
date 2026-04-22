@@ -21,9 +21,10 @@ model Motor {
   updatedAt       DateTime      @updatedAt
 
   customStatus CustomStatus? @relation(fields: [customStatusId], references: [id])
-  assemblies   Assembly[]
-  hourLogs     HourLog[]
-  editLogs     MotorEditLog[]
+  assemblies            Assembly[]
+  hourLogs              HourLog[]
+  editLogs              MotorEditLog[]
+  subComponentHourLogs  SubComponentHourLog[]
 }
 
 model CustomStatus {
@@ -42,8 +43,9 @@ model User {
   email         String     @unique
   passwordHash  String
   createdAt     DateTime   @default(now())
-  hourLogs      HourLog[]
-  motorEditLogs MotorEditLog[]
+  hourLogs              HourLog[]
+  motorEditLogs         MotorEditLog[]
+  subComponentHourLogs  SubComponentHourLog[]
 }
 
 model SubComponent {
@@ -56,7 +58,8 @@ model SubComponent {
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @updatedAt
 
-  assemblies Assembly[]
+  assemblies            Assembly[]
+  subComponentHourLogs  SubComponentHourLog[]
 }
 
 model Assembly {
@@ -102,4 +105,25 @@ model MotorEditLog {
 
   @@index([motorId, editedAt])
   @@index([userId, editedAt])
+}
+
+model SubComponentHourLog {
+  id             String   @id @default(cuid())
+  subComponentId String
+  motorId        String?
+  userId         String
+  hoursAdded     Float
+  totalAfter     Float
+  rigName        String
+  wellNumber     String
+  notes          String?
+  createdAt      DateTime @default(now())
+
+  subComponent SubComponent @relation(fields: [subComponentId], references: [id], onDelete: Cascade)
+  motor        Motor?       @relation(fields: [motorId], references: [id], onDelete: SetNull)
+  user         User         @relation(fields: [userId], references: [id])
+
+  @@index([subComponentId, createdAt])
+  @@index([motorId, createdAt])
+  @@index([userId, createdAt])
 }

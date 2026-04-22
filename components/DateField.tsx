@@ -70,12 +70,6 @@ export default function DateField({ name, label, placeholder = 'Select date', de
   const today = useMemo(() => new Date(), []);
 
   useEffect(() => {
-    if (selectedDate) {
-      setViewDate(startOfMonth(selectedDate));
-    }
-  }, [selectedDate]);
-
-  useEffect(() => {
     if (!open) return;
 
     function handleClick(event: MouseEvent) {
@@ -112,7 +106,14 @@ export default function DateField({ name, label, placeholder = 'Select date', de
       <input
         type="date"
         value={value}
-        onChange={(event) => setValue(event.target.value)}
+        onChange={(event) => {
+          const nextValue = event.target.value;
+          setValue(nextValue);
+          const parsed = parseIsoDate(nextValue);
+          if (parsed) {
+            setViewDate(startOfMonth(parsed));
+          }
+        }}
         className="md:hidden w-full bg-[#EBEBEB] border border-[var(--border)] rounded-lg px-3 py-3 text-sm text-[#333333] focus:outline-none focus:border-[#9E9EB0] focus:ring-1 focus:ring-[#9E9EB0]/30 transition-colors"
       />
 
@@ -183,6 +184,7 @@ export default function DateField({ name, label, placeholder = 'Select date', de
                     type="button"
                     onClick={() => {
                       setValue(toIsoDate(date));
+                      setViewDate(startOfMonth(date));
                       setOpen(false);
                     }}
                     className={`flex h-9 w-9 items-center justify-center rounded-lg text-xs font-semibold transition ${
@@ -215,6 +217,7 @@ export default function DateField({ name, label, placeholder = 'Select date', de
                 onClick={() => {
                   const now = new Date();
                   setValue(toIsoDate(now));
+                  setViewDate(startOfMonth(now));
                   setOpen(false);
                 }}
                 className="rounded-lg border border-[#C7C7D2] bg-[#4E4E5C] px-2.5 py-1 text-xs font-semibold text-white shadow-[0_6px_14px_rgba(46,46,68,0.35)]"

@@ -1,7 +1,7 @@
 export const runtime = 'nodejs';
 
 import { auth } from '@/auth';
-import { getInstalledMotorForSubComponent, logPumpingHoursCascade } from '@/lib/hour-logs';
+import { logPumpingHoursCascade, logSubComponentHoursIsolated } from '@/lib/hour-logs';
 import { revalidatePath } from 'next/cache';
 import { NextRequest, NextResponse } from 'next/server';
 
@@ -34,6 +34,10 @@ function parseError(error: unknown): { status: number; message: string } {
       return { status: 400, message };
     }
 
+    if (message.includes('Sub-component not found')) {
+      return { status: 404, message: 'Sub-component not found.' };
+    }
+
     if (message.includes('Record to update not found')) {
       return { status: 404, message: 'Motor not found.' };
     }
@@ -55,20 +59,36 @@ export async function POST(request: NextRequest) {
 
     const subComponentId = typeof body.subComponentId === 'string' ? body.subComponentId.trim() : '';
     const providedMotorId = typeof body.motorId === 'string' ? body.motorId.trim() : '';
-    let targetMotorId = providedMotorId;
 
     if (subComponentId) {
-      const activeAssembly = await getInstalledMotorForSubComponent(subComponentId);
-      if (!activeAssembly) {
-        return NextResponse.json(
-          { error: 'Sub-component must be installed in a motor to log hours.' },
-          { status: 400 }
-        );
-      }
-      targetMotorId = activeAssembly.motorId;
+      const result = await logSubComponentHoursIsolated({
+        subComponentId,
+        userId: session.user.id,
+        hoursAdded: Number(body.hoursAdded),
+        rigName: body.rigName ?? '',
+        wellNumber: body.wellNumber ?? '',
+        notes: body.notes,
+      });
+
+      revalidatePath(`/motors/${result.motorId}`);
+      revalidatePath('/sub-components');
+      revalidatePath('/');
+      revalidatePath(`/sub-components/${subComponentId}`);
+
+      return NextResponse.json(
+        {
+          mode: 'sub-component',
+          motorId: result.motorId,
+          subComponentId: result.subComponentId,
+          totalAfter: result.totalAfter,
+          subComponentsUpdated: result.subComponentsUpdated,
+          motorUpdated: false,
+        },
+        { status: 201 }
+      );
     }
 
-    if (!targetMotorId) {
+    if (!providedMotorId) {
       return NextResponse.json(
         { error: 'Either motorId or subComponentId is required.' },
         { status: 400 }
@@ -76,7 +96,7 @@ export async function POST(request: NextRequest) {
     }
 
     const result = await logPumpingHoursCascade({
-      motorId: targetMotorId,
+      motorId: providedMotorId,
       userId: session.user.id,
       hoursAdded: Number(body.hoursAdded),
       rigName: body.rigName ?? '',
@@ -84,17 +104,14 @@ export async function POST(request: NextRequest) {
       notes: body.notes,
     });
 
-    revalidatePath(`/motors/${targetMotorId}`);
+    revalidatePath(`/motors/${providedMotorId}`);
     revalidatePath('/sub-components');
     revalidatePath('/');
 
-    if (subComponentId) {
-      revalidatePath(`/sub-components/${subComponentId}`);
-    }
-
     return NextResponse.json(
       {
-        motorId: targetMotorId,
+        mode: 'motor',
+        motorId: providedMotorId,
         motor: result.motor,
         subComponentsUpdated: result.subComponentsUpdated,
       },

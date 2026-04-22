@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 type MotorRecord = {
@@ -49,6 +51,19 @@ type HourLogRecord = {
   createdAt: Date;
 };
 
+type SubComponentHourLogRecord = {
+  id: string;
+  subComponentId: string;
+  motorId: string | null;
+  userId: string;
+  hoursAdded: number;
+  totalAfter: number;
+  rigName: string;
+  wellNumber: string;
+  notes: string | null;
+  createdAt: Date;
+};
+
 type MotorEditLogRecord = {
   id: string;
   motorId: string;
@@ -70,6 +85,7 @@ type DbState = {
   subComponents: SubComponentRecord[];
   assemblies: AssemblyRecord[];
   hourLogs: HourLogRecord[];
+  subComponentHourLogs: SubComponentHourLogRecord[];
   motorEditLogs: MotorEditLogRecord[];
   customStatuses: CustomStatusRecord[];
   counters: {
@@ -77,6 +93,7 @@ type DbState = {
     subComponent: number;
     assembly: number;
     hourLog: number;
+    subComponentHourLog: number;
     motorEditLog: number;
     customStatus: number;
   };
@@ -92,6 +109,7 @@ const { db, prismaMock, resetDb, getUserNameById } = vi.hoisted(() => {
     subComponents: [],
     assemblies: [],
     hourLogs: [],
+    subComponentHourLogs: [],
     motorEditLogs: [],
     customStatuses: [],
     counters: {
@@ -99,6 +117,7 @@ const { db, prismaMock, resetDb, getUserNameById } = vi.hoisted(() => {
       subComponent: 0,
       assembly: 0,
       hourLog: 0,
+      subComponentHourLog: 0,
       motorEditLog: 0,
       customStatus: 0,
     },
@@ -277,6 +296,7 @@ const { db, prismaMock, resetDb, getUserNameById } = vi.hoisted(() => {
     dbState.subComponents = [];
     dbState.assemblies = [];
     dbState.hourLogs = [];
+    dbState.subComponentHourLogs = [];
     dbState.motorEditLogs = [];
     dbState.customStatuses = [];
     dbState.counters = {
@@ -284,6 +304,7 @@ const { db, prismaMock, resetDb, getUserNameById } = vi.hoisted(() => {
       subComponent: 0,
       assembly: 0,
       hourLog: 0,
+      subComponentHourLog: 0,
       motorEditLog: 0,
       customStatus: 0,
     };
@@ -382,6 +403,14 @@ const { db, prismaMock, resetDb, getUserNameById } = vi.hoisted(() => {
 
         if (!match) return null;
 
+        if (!args.include) {
+          return cloneSubComponent(match);
+        }
+
+        const result: Record<string, unknown> = {
+          ...cloneSubComponent(match),
+        };
+
         if (args.include?.assemblies) {
           const assemblies = dbState.assemblies
             .filter((assembly) => assembly.subComponentId === match.id)
@@ -394,13 +423,34 @@ const { db, prismaMock, resetDb, getUserNameById } = vi.hoisted(() => {
               };
             });
 
-          return {
-            ...cloneSubComponent(match),
-            assemblies,
-          };
+          result.assemblies = assemblies;
         }
 
-        return cloneSubComponent(match);
+        if (args.include?.subComponentHourLogs) {
+          result.subComponentHourLogs = dbState.subComponentHourLogs
+            .filter((log) => log.subComponentId === match.id)
+            .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+            .map((log) => {
+              const motor = log.motorId
+                ? dbState.motors.find((record) => record.id === log.motorId) || null
+                : null;
+
+              return {
+                ...log,
+                createdAt: new Date(log.createdAt),
+                user: { name: userNames[log.userId] || null },
+                motor: motor
+                  ? {
+                      id: motor.id,
+                      name: motor.name,
+                      serialNumber: motor.serialNumber,
+                    }
+                  : null,
+              };
+            });
+        }
+
+        return result;
       }),
       create: vi.fn(async (args: any) => {
         const data = args.data as Record<string, unknown>;
@@ -426,11 +476,22 @@ const { db, prismaMock, resetDb, getUserNameById } = vi.hoisted(() => {
         }
 
         const data = args.data as Record<string, unknown>;
+        if (data.cumulativeHours && typeof data.cumulativeHours === 'object' && 'increment' in (data.cumulativeHours as object)) {
+          match.cumulativeHours += Number((data.cumulativeHours as { increment: number }).increment || 0);
+        }
         if (data.type !== undefined) match.type = String(data.type);
         if (data.serialNumber !== undefined) match.serialNumber = String(data.serialNumber);
         if (data.status !== undefined) match.status = String(data.status);
         if (data.notes !== undefined) match.notes = (data.notes as string | null) || null;
         match.updatedAt = now();
+
+        if (args.select) {
+          const selected: Record<string, unknown> = {};
+          for (const key of Object.keys(args.select)) {
+            selected[key] = (match as Record<string, unknown>)[key];
+          }
+          return selected;
+        }
 
         return cloneSubComponent(match);
       }),
@@ -593,6 +654,27 @@ const { db, prismaMock, resetDb, getUserNameById } = vi.hoisted(() => {
       }),
     },
 
+    subComponentHourLog: {
+      create: vi.fn(async (args: any) => {
+        const data = args.data as Record<string, unknown>;
+        const created: SubComponentHourLogRecord = {
+          id: nextId('subComponentHourLog'),
+          subComponentId: String(data.subComponentId),
+          motorId: (data.motorId as string | null) || null,
+          userId: String(data.userId),
+          hoursAdded: Number(data.hoursAdded),
+          totalAfter: Number(data.totalAfter),
+          rigName: String(data.rigName),
+          wellNumber: String(data.wellNumber),
+          notes: (data.notes as string | null) || null,
+          createdAt: now(),
+        };
+
+        dbState.subComponentHourLogs.push(created);
+        return { ...created, createdAt: new Date(created.createdAt) };
+      }),
+    },
+
     motorEditLog: {
       create: vi.fn(async (args: any) => {
         const data = args.data as Record<string, unknown>;
@@ -646,8 +728,15 @@ const { db, prismaMock, resetDb, getUserNameById } = vi.hoisted(() => {
       const tx = {
         motor: { update: prisma.motor.update },
         hourLog: { create: prisma.hourLog.create },
-        assembly: { findMany: prisma.assembly.findMany },
-        subComponent: { updateMany: prisma.subComponent.updateMany },
+        assembly: {
+          findFirst: prisma.assembly.findFirst,
+          findMany: prisma.assembly.findMany,
+        },
+        subComponent: {
+          update: prisma.subComponent.update,
+          updateMany: prisma.subComponent.updateMany,
+        },
+        subComponentHourLog: { create: prisma.subComponentHourLog.create },
         motorEditLog: { create: prisma.motorEditLog.create },
       };
 
@@ -744,8 +833,58 @@ describe('motor workflow integration', () => {
 
     expect(logResponse.status).toBe(201);
     const logPayload = await logResponse.json();
+    expect(logPayload.mode).toBe('sub-component');
     expect(logPayload.motorId).toBe(workflowMotor.id);
-    expect(logPayload.motor.pumpingHours).toBe(12.5);
+    expect(logPayload.subComponentId).toBe(subComponent.id);
+    expect(logPayload.totalAfter).toBe(12.5);
+    expect(logPayload.subComponentsUpdated).toBe(1);
+
+    const motorAfterSubComponentLog = db.motors.find((record) => record.id === workflowMotor.id);
+    expect(motorAfterSubComponentLog?.pumpingHours).toBe(0);
+
+    const componentAfterSubComponentLog = db.subComponents.find((record) => record.id === subComponent.id);
+    expect(componentAfterSubComponentLog?.cumulativeHours).toBe(12.5);
+    expect(db.hourLogs).toHaveLength(0);
+    expect(db.subComponentHourLogs).toHaveLength(1);
+    expect(db.subComponentHourLogs[0]).toMatchObject({
+      subComponentId: subComponent.id,
+      motorId: workflowMotor.id,
+      userId: 'user-1',
+      hoursAdded: 12.5,
+      totalAfter: 12.5,
+      rigName: 'Rig 14',
+      wellNumber: 'Well-22',
+      notes: 'Initial post-assembly run',
+    });
+
+    const motorLogResponse = await postHourLog(
+      new Request('http://localhost/api/hour-logs', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          motorId: workflowMotor.id,
+          hoursAdded: 7.5,
+          rigName: 'Rig 14',
+          wellNumber: 'Well-22',
+          notes: 'Whole toolset run',
+        }),
+      }) as never
+    );
+
+    expect(motorLogResponse.status).toBe(201);
+    const motorLogPayload = await motorLogResponse.json();
+    expect(motorLogPayload.mode).toBe('motor');
+    expect(motorLogPayload.motorId).toBe(workflowMotor.id);
+    expect(motorLogPayload.motor.pumpingHours).toBe(7.5);
+    expect(motorLogPayload.subComponentsUpdated).toBe(1);
+
+    const motorAfterCascadeLog = db.motors.find((record) => record.id === workflowMotor.id);
+    expect(motorAfterCascadeLog?.pumpingHours).toBe(7.5);
+
+    const componentAfterCascadeLog = db.subComponents.find((record) => record.id === subComponent.id);
+    expect(componentAfterCascadeLog?.cumulativeHours).toBe(20);
+    expect(db.hourLogs).toHaveLength(1);
+    expect(db.subComponentHourLogs).toHaveLength(1);
 
     const patchedName = 'Motor Workflow Alpha - Rev A';
     const patchResponse = await patchMotor(

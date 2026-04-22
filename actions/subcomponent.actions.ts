@@ -85,6 +85,13 @@ export async function getSubComponent(id: string) {
         include: { motor: true },
         orderBy: { dateAssembled: 'desc' },
       },
+      subComponentHourLogs: {
+        orderBy: { createdAt: 'desc' },
+        include: {
+          user: { select: { name: true } },
+          motor: { select: { id: true, name: true, serialNumber: true } },
+        },
+      },
     },
   });
 }

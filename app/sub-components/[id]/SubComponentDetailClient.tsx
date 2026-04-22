@@ -24,6 +24,24 @@ type AssemblyRecord = {
   };
 };
 
+type SubComponentHourLogRecord = {
+  id: string;
+  hoursAdded: number;
+  totalAfter: number;
+  rigName: string;
+  wellNumber: string;
+  notes: string | null;
+  createdAt: string;
+  user: {
+    name: string | null;
+  } | null;
+  motor: {
+    id: string;
+    name: string;
+    serialNumber: string;
+  } | null;
+};
+
 type SubComponentDetail = {
   id: string;
   type: string;
@@ -32,6 +50,7 @@ type SubComponentDetail = {
   notes: string | null;
   cumulativeHours: number;
   assemblies: AssemblyRecord[];
+  subComponentHourLogs: SubComponentHourLogRecord[];
 };
 
 type FlashMessage = {
@@ -222,7 +241,7 @@ export function SubComponentDetailClient({ initialSubComponent }: { initialSubCo
       setWellNumber('');
       setNotes('');
       setIsHoursOpen(false);
-      setFlash({ tone: 'success', message: 'Hours logged successfully.' });
+      setFlash({ tone: 'success', message: 'Hours added to this sub-component only.' });
       router.refresh();
     } catch (error) {
       setFlash({
@@ -385,6 +404,54 @@ export function SubComponentDetailClient({ initialSubComponent }: { initialSubCo
             <p className="text-sm text-[#333333] text-center py-6">No assembly history</p>
           )}
         </div>
+
+        <div className="mt-6 bg-[var(--card)] border border-[var(--border)] rounded-xl p-4 md:p-5 w-full min-w-0 max-w-full">
+          <h3 className="text-sm font-semibold text-[#121212] mb-4">Sub-Component Hour History</h3>
+
+          {subComponent.subComponentHourLogs.length > 0 ? (
+            <div className="w-full min-w-0 max-w-full overflow-x-auto">
+              <table className="min-w-[900px] w-max text-xs md:w-full">
+                <thead>
+                  <tr className="text-[#333333] border-b border-[var(--border)]">
+                    <th className="text-left py-2 pr-4 font-medium">Date</th>
+                    <th className="text-right py-2 pr-4 font-medium">Added</th>
+                    <th className="text-right py-2 pr-4 font-medium">Total After</th>
+                    <th className="text-left py-2 pr-4 font-medium">Motor</th>
+                    <th className="text-left py-2 pr-4 font-medium">Rig</th>
+                    <th className="text-left py-2 pr-4 font-medium">Well</th>
+                    <th className="text-left py-2 pr-4 font-medium">Logged By</th>
+                    <th className="text-left py-2 font-medium">Notes</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {subComponent.subComponentHourLogs.map((log) => (
+                    <tr key={log.id} className="border-b border-[var(--border)] last:border-0">
+                      <td className="py-2 pr-4 text-[#333333]">{formatDate(log.createdAt)}</td>
+                      <td className="py-2 pr-4 text-right text-[#121212] font-semibold">+{formatHours(log.hoursAdded)}</td>
+                      <td className="py-2 pr-4 text-right text-[#333333]">{formatHours(log.totalAfter)}</td>
+                      <td className="py-2 pr-4 text-[#333333]">
+                        {log.motor ? (
+                          <Link
+                            href={`/motors/${log.motor.id}`}
+                            className="text-[#333333] hover:text-[#9E9EB0] transition-colors"
+                          >
+                            {log.motor.name}
+                          </Link>
+                        ) : '—'}
+                      </td>
+                      <td className="py-2 pr-4 text-[#333333]">{log.rigName || '—'}</td>
+                      <td className="py-2 pr-4 text-[#333333]">{log.wellNumber || '—'}</td>
+                      <td className="py-2 pr-4 text-[#333333]">{log.user?.name || '—'}</td>
+                      <td className="py-2 text-[#333333]">{log.notes || '—'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <p className="text-sm text-[#333333] text-center py-6">No isolated sub-component hours logged yet</p>
+          )}
+        </div>
       </div>
 
       {isEditOpen && (
@@ -472,7 +539,8 @@ export function SubComponentDetailClient({ initialSubComponent }: { initialSubCo
               Add Hours
             </h2>
             <p className="text-xs text-[#333333] mt-1 mb-4">
-              Logging to {activeAssembly?.motor.name || 'current motor'} and applying cascade updates.
+              Note: Hours added here only apply to this specific component. To log a run for the entire toolset,
+              add hours from the Motor page.
             </p>
 
             <form onSubmit={handleLogHours} className="space-y-4">

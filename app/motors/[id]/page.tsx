@@ -23,7 +23,7 @@ export default async function MotorDetailPage({ params }: { params: Promise<{ id
   const motor = await getMotor(id);
   if (!motor) notFound();
 
-  const activeAssemblies = motor.assemblies.filter((a: any) => !a.dateRemoved);
+  const activeAssemblies = motor.assemblies.filter((a) => !a.dateRemoved);
 
   return (
     <div className="animate-fade-in">
@@ -84,7 +84,7 @@ export default async function MotorDetailPage({ params }: { params: Promise<{ id
                     </tr>
                   </thead>
                   <tbody>
-                    {motor.hourLogs.map((log: any) => (
+                    {motor.hourLogs.map((log) => (
                       <tr key={log.id} className="border-b border-[var(--border)] last:border-0">
                         <td className="py-2 pr-4 text-[#333333]">{formatDate(log.createdAt)}</td>
                         <td className="py-2 pr-4 text-right text-[#121212] font-semibold">+{formatHours(log.hoursAdded)}</td>

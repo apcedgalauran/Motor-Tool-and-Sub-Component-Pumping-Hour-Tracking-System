@@ -1,5 +1,6 @@
 'use server';
 
+import type { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
 
@@ -72,7 +73,7 @@ export async function disassembleSubComponent(assemblyId: string) {
 }
 
 export async function disperseToolset(motorId: string) {
-  await prisma.$transaction(async (tx: any) => {
+  await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
     // Snapshot motor's current hours
     const motor = await tx.motor.findUniqueOrThrow({ where: { id: motorId } });
     const hoursAtRemoval = motor.pumpingHours;
@@ -83,7 +84,7 @@ export async function disperseToolset(motorId: string) {
 
     // Close all assemblies simultaneously
     await Promise.all(
-      active.map((a: any) =>
+      active.map((a) =>
         tx.assembly.update({
           where: { id: a.id },
           data: {
@@ -97,7 +98,7 @@ export async function disperseToolset(motorId: string) {
 
     // Update all sub-component statuses back to AVAILABLE
     await Promise.all(
-      active.map((a: any) =>
+      active.map((a) =>
         tx.subComponent.update({ where: { id: a.subComponentId }, data: { status: 'AVAILABLE' } })
       )
     );

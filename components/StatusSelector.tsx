@@ -5,7 +5,6 @@ import { getCustomStatuses, createCustomStatus } from '@/actions/custom-status.a
 import {
   STANDARD_MOTOR_STATUSES,
   MOTOR_STATUS_LABELS,
-  MOTOR_STATUS_COLORS,
   getStatusColor,
 } from '@/lib/utils';
 
@@ -36,9 +35,10 @@ export function StatusSelector({ defaultStatus = 'ON_LOCATION', defaultCustomSta
 
   // Determine if the default status is a custom one (not in standard list)
   useEffect(() => {
+    const standardStatuses = STANDARD_MOTOR_STATUSES as readonly string[];
     if (
       defaultStatus &&
-      !STANDARD_MOTOR_STATUSES.includes(defaultStatus as any) &&
+      !standardStatuses.includes(defaultStatus) &&
       defaultStatus !== '__OTHER__'
     ) {
       // It's a custom status value — check if it's in permanent customs
