@@ -2,6 +2,7 @@
 
 import { classifyMotorFile, formatFileSize } from '@/lib/motor-files';
 import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 
 type MotorFileRecord = {
   id: string;
@@ -18,11 +19,6 @@ type MotorFileViewerModalProps = {
   onClose: () => void;
 };
 
-const overlayClassName =
-  'fixed inset-0 z-50 bg-black/60 p-3 sm:p-6 flex items-center justify-center overflow-y-auto';
-const modalClassName =
-  'w-full max-w-6xl min-w-0 max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-3rem)] overflow-hidden bg-[var(--card)] border border-[var(--border)] rounded-xl shadow-2xl';
-
 function formatDateTime(value: Date | string): string {
   const parsed = new Date(value);
   if (Number.isNaN(parsed.getTime())) return String(value);
@@ -38,7 +34,14 @@ function formatDateTime(value: Date | string): string {
 
 export function MotorFileViewerModal({ motorId, file, onClose }: MotorFileViewerModalProps) {
   const [isZoomed, setIsZoomed] = useState(false);
+  const [portalTarget, setPortalTarget] = useState<HTMLElement | null>(null);
 
+  // Resolve the portal target on the client only (SSR-safe)
+  useEffect(() => {
+    setPortalTarget(document.body);
+  }, []);
+
+  // Lock background scrolling while the modal is open
   useEffect(() => {
     if (!file) return;
 
@@ -50,6 +53,7 @@ export function MotorFileViewerModal({ motorId, file, onClose }: MotorFileViewer
     };
   }, [file]);
 
+  // Close on Escape key
   useEffect(() => {
     if (!file) return;
 
@@ -65,7 +69,7 @@ export function MotorFileViewerModal({ motorId, file, onClose }: MotorFileViewer
     };
   }, [file, onClose]);
 
-  if (!file) {
+  if (!file || !portalTarget) {
     return null;
   }
 
@@ -73,16 +77,20 @@ export function MotorFileViewerModal({ motorId, file, onClose }: MotorFileViewer
   const contentUrl = `/api/motors/${motorId}/files/${file.id}/content`;
   const downloadUrl = `${contentUrl}?download=1`;
 
-  return (
-    <div className={overlayClassName} onClick={onClose}>
+  const modalContent = (
+    <div
+      className="fixed inset-0 w-screen h-screen z-[100] bg-black/60 flex items-center justify-center p-3 sm:p-6"
+      onClick={onClose}
+    >
       <div
         role="dialog"
         aria-modal="true"
         aria-labelledby="motor-file-viewer-title"
-        className={modalClassName}
+        className="w-full max-w-6xl min-w-0 max-h-[90vh] overflow-hidden bg-[var(--card)] border border-[var(--border)] rounded-xl shadow-2xl flex flex-col"
         onClick={(event) => event.stopPropagation()}
       >
-        <div className="flex items-start justify-between gap-4 p-4 sm:p-5 border-b border-[var(--border)]">
+        {/* Header */}
+        <div className="flex items-start justify-between gap-4 p-4 sm:p-5 border-b border-[var(--border)] shrink-0">
           <div className="min-w-0">
             <h2 id="motor-file-viewer-title" className="text-base sm:text-lg font-semibold text-[#121212] truncate">
               {file.fileName}
@@ -96,23 +104,24 @@ export function MotorFileViewerModal({ motorId, file, onClose }: MotorFileViewer
             type="button"
             aria-label="Close file viewer"
             onClick={onClose}
-            className="w-9 h-9 rounded-lg border border-[var(--border)] text-[#333333] hover:bg-[var(--card-hover)] transition-colors"
+            className="w-9 h-9 rounded-lg border border-[var(--border)] text-[#333333] hover:bg-[var(--card-hover)] transition-colors shrink-0"
           >
             X
           </button>
         </div>
 
-        <div className="p-3 sm:p-5 h-[70vh] sm:h-[74vh] overflow-auto bg-[var(--background)]">
+        {/* Content — scrollable within the modal */}
+        <div className="flex-1 overflow-y-auto p-3 sm:p-5 bg-[var(--background)]">
           {viewerKind === 'pdf' && (
             <iframe
               src={contentUrl}
               title={file.fileName}
-              className="w-full h-full min-h-[420px] rounded-lg border border-[var(--border)] bg-white"
+              className="w-full h-[70vh] min-h-[420px] rounded-lg border border-[var(--border)] bg-white"
             />
           )}
 
           {viewerKind === 'image' && (
-            <div className="h-full flex items-center justify-center overflow-auto">
+            <div className="min-h-[50vh] flex items-center justify-center overflow-auto">
               <img
                 src={contentUrl}
                 alt={file.fileName}
@@ -127,11 +136,11 @@ export function MotorFileViewerModal({ motorId, file, onClose }: MotorFileViewer
           )}
 
           {viewerKind === 'video' && (
-            <div className="h-full flex items-center justify-center">
+            <div className="min-h-[50vh] flex items-center justify-center">
               <video
                 src={contentUrl}
                 controls
-                className="max-w-full max-h-full rounded-lg border border-[var(--border)] bg-black"
+                className="max-w-full max-h-[70vh] rounded-lg border border-[var(--border)] bg-black"
               >
                 Your browser does not support HTML5 video playback.
               </video>
@@ -139,7 +148,7 @@ export function MotorFileViewerModal({ motorId, file, onClose }: MotorFileViewer
           )}
 
           {viewerKind === 'download' && (
-            <div className="h-full flex items-center justify-center">
+            <div className="min-h-[50vh] flex items-center justify-center">
               <div className="w-full max-w-xl rounded-xl border border-[var(--border)] bg-[var(--card)] p-5 sm:p-6 text-center">
                 <p className="text-xs uppercase tracking-wider text-[#333333]">Preview not available</p>
                 <p className="text-base font-semibold text-[#121212] mt-2 break-words">{file.fileName}</p>
@@ -159,4 +168,6 @@ export function MotorFileViewerModal({ motorId, file, onClose }: MotorFileViewer
       </div>
     </div>
   );
+
+  return createPortal(modalContent, portalTarget);
 }
