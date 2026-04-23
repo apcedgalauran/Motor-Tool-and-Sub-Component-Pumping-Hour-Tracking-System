@@ -32,10 +32,10 @@ export function MotorCard({
     >
       <div className="flex items-start justify-between mb-4">
         <div>
-          <h3 className="text-base font-semibold text-[#121212] group-hover:text-[#9E9EB0] transition-colors">
-            {name}
+          <h3 className="text-base font-semibold text-[#121212] group-hover:text-[#9E9EB0] transition-colors font-mono">
+            {serialNumber}
           </h3>
-          <p className="text-xs text-[#333333] mt-0.5 font-mono">{serialNumber}</p>
+          <p className="text-xs text-[#333333] mt-0.5">{name}</p>
         </div>
         <span className="flex items-center gap-1.5 text-[10px] uppercase tracking-wider px-2 py-1 rounded-md border font-semibold bg-[#f5f5f5] border-[#ddd] text-[#333333]">
           <span

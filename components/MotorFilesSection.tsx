@@ -12,6 +12,7 @@ import {
 } from '@/lib/motor-files';
 import { formatDate } from '@/lib/utils';
 import { useRef, useState } from 'react';
+import { DeleteFileModal } from './DeleteFileModal';
 import { MotorFileViewerModal } from './MotorFileViewerModal';
 
 type MotorFileRecord = {
@@ -47,8 +48,8 @@ export function MotorFilesSection({ motorId, initialFiles }: MotorFilesSectionPr
 
   const [files, setFiles] = useState<MotorFileRecord[]>(initialFiles);
   const [activeFile, setActiveFile] = useState<MotorFileRecord | null>(null);
+  const [fileToDelete, setFileToDelete] = useState<MotorFileRecord | null>(null);
   const [uploading, setUploading] = useState(false);
-  const [deletingId, setDeletingId] = useState<string | null>(null);
   const [error, setError] = useState('');
 
   function openFilePicker() {
@@ -114,32 +115,12 @@ export function MotorFilesSection({ motorId, initialFiles }: MotorFilesSectionPr
     }
   }
 
-  async function handleDeleteFile(file: MotorFileRecord) {
-    if (!confirm(`Delete this file?\n\n${file.fileName}`)) {
-      return;
-    }
-
-    setError('');
-    setDeletingId(file.id);
-
-    try {
-      const response = await fetch(`/api/motors/${motorId}/files/${file.id}`, {
-        method: 'DELETE',
-      });
-
-      if (!response.ok) {
-        const payload = (await response.json().catch(() => null)) as { error?: string } | null;
-        throw new Error(payload?.error || 'Failed to delete file.');
-      }
-
-      setFiles((current) => current.filter((entry) => entry.id !== file.id));
-      if (activeFile?.id === file.id) {
+  function handleDeleteSuccess() {
+    if (fileToDelete) {
+      setFiles((current) => current.filter((entry) => entry.id !== fileToDelete.id));
+      if (activeFile?.id === fileToDelete.id) {
         setActiveFile(null);
       }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to delete file.');
-    } finally {
-      setDeletingId(null);
     }
   }
 
@@ -233,11 +214,10 @@ export function MotorFilesSection({ motorId, initialFiles }: MotorFilesSectionPr
                 <div className="px-3 pb-3">
                   <button
                     type="button"
-                    onClick={() => void handleDeleteFile(file)}
-                    disabled={deletingId === file.id}
-                    className="w-full text-xs text-red-500 hover:text-red-600 border border-red-500/20 hover:border-red-500/40 rounded-md px-2.5 py-1.5 transition-colors disabled:opacity-50"
+                    onClick={() => setFileToDelete(file)}
+                    className="w-full text-xs text-red-500 hover:text-red-600 border border-red-500/20 hover:border-red-500/40 rounded-md px-2.5 py-1.5 transition-colors"
                   >
-                    {deletingId === file.id ? 'Deleting...' : 'Delete'}
+                    Delete
                   </button>
                 </div>
               </div>
@@ -251,6 +231,18 @@ export function MotorFilesSection({ motorId, initialFiles }: MotorFilesSectionPr
         motorId={motorId}
         file={activeFile}
         onClose={() => setActiveFile(null)}
+      />
+
+      <DeleteFileModal
+        isOpen={fileToDelete !== null}
+        onClose={() => setFileToDelete(null)}
+        onSuccess={handleDeleteSuccess}
+        motorId={motorId}
+        file={
+          fileToDelete
+            ? { id: fileToDelete.id, fileName: fileToDelete.fileName }
+            : null
+        }
       />
     </div>
   );
