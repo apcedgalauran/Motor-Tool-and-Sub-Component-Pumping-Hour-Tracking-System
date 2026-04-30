@@ -14,7 +14,11 @@ async function main() {
     })
     console.log("Success:", motors.length)
   } catch (e) {
-    console.error("Prisma error:", e.message)
+    if (e instanceof Error) {
+      console.error("Prisma error:", e.message)
+    } else {
+      console.error("Prisma error:", e)
+    }
   }
 }
 
