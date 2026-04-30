@@ -2,7 +2,7 @@
 
 import DateField from '@/components/DateField';
 import { StatusSelector } from '@/components/StatusSelector';
-import { formatDate, formatHours, getStatusColor, getStatusLabel } from '@/lib/utils';
+import { formatDate, getStatusColor, getStatusLabel } from '@/lib/utils';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
@@ -288,7 +288,7 @@ export function MotorInlineEditor({ initialMotor, activeAssembliesCount }: Motor
             )}
 
             <Link
-              href={`/motors/${motor.id}/assemble`}
+              href={`/motors/${motor.id}?tab=assembly`}
               className={primaryButtonClass}
             >
               + Assemble Sub-Component
@@ -308,11 +308,7 @@ export function MotorInlineEditor({ initialMotor, activeAssembliesCount }: Motor
           </div>
         )}
 
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6 md:mb-8 animate-fade-in stagger-1">
-          <div className="bg-[var(--card)] border border-[var(--border)] rounded-xl p-3 md:p-4">
-            <p className="text-[10px] text-[#333333] uppercase tracking-wider mb-1">Pumping Hours</p>
-            <p className="text-2xl font-bold text-[#121212] tracking-tight">{formatHours(motor.pumpingHours)}</p>
-          </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-6 md:mb-8 animate-fade-in stagger-1">
           <div className="bg-[var(--card)] border border-[var(--border)] rounded-xl p-3 md:p-4">
             <p className="text-[10px] text-[#333333] uppercase tracking-wider mb-1">Assembled Parts</p>
             <p className="text-2xl font-bold text-[#333333] tracking-tight">{activeAssembliesCount}</p>

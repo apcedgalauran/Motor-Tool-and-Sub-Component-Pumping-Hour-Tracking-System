@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { getStatusLabel, getStatusColor, formatHours } from '@/lib/utils';
+import { getStatusLabel, getStatusColor } from '@/lib/utils';
 
 type MotorCardProps = {
   id: string;
@@ -8,7 +8,6 @@ type MotorCardProps = {
   status: string;
   statusColor?: string | null;
   location: string | null;
-  pumpingHours: number;
   assembledCount: number;
 };
 
@@ -19,7 +18,6 @@ export function MotorCard({
   status,
   statusColor: customColor,
   location,
-  pumpingHours,
   assembledCount,
 }: MotorCardProps) {
   const dotColor = getStatusColor(status, customColor);
@@ -44,14 +42,6 @@ export function MotorCard({
           />
           {label}
         </span>
-      </div>
-
-      {/* Hours display */}
-      <div className="mb-4">
-        <div className="text-2xl font-bold text-[#121212] tracking-tight">
-          {formatHours(pumpingHours)}
-          <span className="text-xs text-[#A3A3A3] font-normal ml-1.5">hrs</span>
-        </div>
       </div>
 
       {/* Footer info */}

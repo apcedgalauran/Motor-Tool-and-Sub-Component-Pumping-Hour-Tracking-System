@@ -33,7 +33,6 @@ export default async function MotorsPage() {
                 status={motor.status}
                 statusColor={motor.customStatus?.color}
                 location={motor.location}
-                pumpingHours={motor.pumpingHours}
                 assembledCount={motor._count.assemblies}
               />
             </div>

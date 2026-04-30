@@ -1,6 +1,6 @@
 import { getMotors } from '@/actions/motor.actions';
 import { getCustomStatuses } from '@/actions/custom-status.actions';
-import { MotorCard } from '@/components/MotorCard';
+import { SerialNumberSearch } from '@/components/SerialNumberSearch';
 import {
   STANDARD_MOTOR_STATUSES,
   MOTOR_STATUS_LABELS,
@@ -36,7 +36,7 @@ export default async function DashboardPage() {
         </Link>
       </div>
 
-      {/* Stats grid — 3 cards (Total Hours removed) */}
+      {/* Stats grid */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6 animate-fade-in stagger-1">
         <StatCard label="Total Motors" value={totalMotors.toString()} />
         <StatCard label="On Location" value={onLocationMotors.toString()} />
@@ -68,36 +68,29 @@ export default async function DashboardPage() {
         </div>
       </div>
 
-      {/* Motors Grid */}
-      {motors.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {motors.map((motor, i) => (
-            <div key={motor.id} className={`animate-fade-in stagger-${Math.min(i + 1, 6)}`}>
-              <MotorCard
-                id={motor.id}
-                name={motor.name}
-                serialNumber={motor.serialNumber}
-                status={motor.status}
-                statusColor={motor.customStatus?.color}
-                location={motor.location}
-                pumpingHours={motor.pumpingHours}
-                assembledCount={motor._count.assemblies}
-              />
-            </div>
-          ))}
-        </div>
-      ) : (
-        <div className="text-center py-20 animate-fade-in">
-          <div className="text-4xl mb-4 opacity-30">⚙</div>
-          <p className="text-[#333333] text-sm mb-4">No motors yet</p>
+      {/* Search */}
+      <div className="animate-fade-in stagger-3">
+        <SerialNumberSearch />
+
+        {/* Browse all links */}
+        <div className="flex items-center gap-4 mt-4">
           <Link
-            href="/motors/new"
-            className="inline-block bg-[#9E9EB0]/10 text-[#9E9EB0] border border-[#9E9EB0]/30 text-sm px-4 py-3 rounded-lg hover:bg-[#9E9EB0]/20 transition-colors"
+            href="/motors"
+            id="dashboard-browse-motors"
+            className="text-xs text-[#9E9EB0] hover:text-[#121212] transition-colors flex items-center gap-1"
           >
-            Add your first motor
+            <span className="text-[10px]">⚙</span> Browse all motors
+          </Link>
+          <span className="text-[#ddd] select-none">·</span>
+          <Link
+            href="/sub-components"
+            id="dashboard-browse-parts"
+            className="text-xs text-[#9E9EB0] hover:text-[#121212] transition-colors flex items-center gap-1"
+          >
+            <span className="text-[10px]">◎</span> Browse all parts
           </Link>
         </div>
-      )}
+      </div>
     </div>
   );
 }
