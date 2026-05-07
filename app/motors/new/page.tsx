@@ -5,12 +5,19 @@ import { useRouter } from 'next/navigation';
 import { createMotor } from '@/actions/motor.actions';
 import Link from 'next/link';
 import DateField from '@/components/DateField';
-import { StatusSelector } from '@/components/StatusSelector';
+import { AssetStatusSelector } from '@/components/asset-status-selector';
+import type { AssetStatus } from '@/lib/asset-status';
 
 export default function NewMotorPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [status, setStatus] = useState<AssetStatus>('IDLE');
+  const [sapId, setSapId] = useState('');
+  const [assetType, setAssetType] = useState('');
+  const [size, setSize] = useState('');
+  const [brandType, setBrandType] = useState('');
+  const [connection, setConnection] = useState('');
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -26,8 +33,12 @@ export default function NewMotorPage() {
         location: (formData.get('location') as string) || undefined,
         dateOut: (formData.get('dateOut') as string) || undefined,
         dateIn: (formData.get('dateIn') as string) || undefined,
-        status: (formData.get('status') as string) || 'ON_LOCATION',
-        customStatusId: (formData.get('customStatusId') as string) || undefined,
+        status: status,
+        sapId: sapId || undefined,
+        assetType: assetType || undefined,
+        size: size || undefined,
+        brandType: brandType || undefined,
+        connection: connection || undefined,
       });
       router.push('/motors');
     } catch (err) {
@@ -83,7 +94,62 @@ export default function NewMotorPage() {
           <DateField name="dateIn" label="Date In" placeholder="Select return date" />
         </div>
 
-        <StatusSelector />
+        <div className="border-t border-[var(--border)] pt-4 mt-2">
+          <p className="text-[10px] text-[#9E9EB0] uppercase tracking-wider font-semibold mb-3">Motor Specifications</p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-3">
+            <div>
+              <label className="block text-xs text-[#333333] mb-1.5 uppercase tracking-wider">SAP ID</label>
+              <input
+                value={sapId}
+                onChange={(e) => setSapId(e.target.value)}
+                placeholder="SAP asset ID"
+                className="w-full bg-[#EBEBEB] border border-[var(--border)] rounded-lg px-3 py-3 md:py-2.5 text-sm text-[#333333] placeholder:text-[#A3A3A3] focus:outline-none focus:border-[#9E9EB0] focus:ring-1 focus:ring-[#9E9EB0]/30 transition-colors"
+              />
+            </div>
+            <div>
+              <label className="block text-xs text-[#333333] mb-1.5 uppercase tracking-wider">Asset Type</label>
+              <input
+                value={assetType}
+                onChange={(e) => setAssetType(e.target.value)}
+                placeholder="Motor"
+                className="w-full bg-[#EBEBEB] border border-[var(--border)] rounded-lg px-3 py-3 md:py-2.5 text-sm text-[#333333] placeholder:text-[#A3A3A3] focus:outline-none focus:border-[#9E9EB0] focus:ring-1 focus:ring-[#9E9EB0]/30 transition-colors"
+              />
+            </div>
+            <div>
+              <label className="block text-xs text-[#333333] mb-1.5 uppercase tracking-wider">Size</label>
+              <input
+                value={size}
+                onChange={(e) => setSize(e.target.value)}
+                placeholder='e.g. 9 5/8"'
+                className="w-full bg-[#EBEBEB] border border-[var(--border)] rounded-lg px-3 py-3 md:py-2.5 text-sm text-[#333333] placeholder:text-[#A3A3A3] focus:outline-none focus:border-[#9E9EB0] focus:ring-1 focus:ring-[#9E9EB0]/30 transition-colors"
+              />
+            </div>
+            <div>
+              <label className="block text-xs text-[#333333] mb-1.5 uppercase tracking-wider">Brand / Type</label>
+              <input
+                value={brandType}
+                onChange={(e) => setBrandType(e.target.value)}
+                placeholder="Brand or type label"
+                className="w-full bg-[#EBEBEB] border border-[var(--border)] rounded-lg px-3 py-3 md:py-2.5 text-sm text-[#333333] placeholder:text-[#A3A3A3] focus:outline-none focus:border-[#9E9EB0] focus:ring-1 focus:ring-[#9E9EB0]/30 transition-colors"
+              />
+            </div>
+            <div className="md:col-span-2">
+              <label className="block text-xs text-[#333333] mb-1.5 uppercase tracking-wider">Connection</label>
+              <input
+                value={connection}
+                onChange={(e) => setConnection(e.target.value)}
+                placeholder="Connection type"
+                className="w-full bg-[#EBEBEB] border border-[var(--border)] rounded-lg px-3 py-3 md:py-2.5 text-sm text-[#333333] placeholder:text-[#A3A3A3] focus:outline-none focus:border-[#9E9EB0] focus:ring-1 focus:ring-[#9E9EB0]/30 transition-colors"
+              />
+            </div>
+          </div>
+        </div>
+
+        <AssetStatusSelector
+          value={status}
+          onChange={setStatus}
+          name="status"
+        />
 
         {error && (
           <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-lg text-xs text-red-500">

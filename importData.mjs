@@ -14,9 +14,11 @@ const isSqlite = connectionString.startsWith('file:') || connectionString.includ
 const isPostgres = connectionString.startsWith('postgres');
 
 const LEGACY_MOTOR_STATUS_MAP = {
-  ACTIVE: 'ON_LOCATION',
-  INACTIVE: 'IN_BASE',
+  ACTIVE: 'IDLE',
+  INACTIVE: 'IDLE',
   IN_MAINTENANCE: 'FOR_MAINTENANCE',
+  ON_LOCATION: 'ON_JOB',
+  IN_BASE: 'IDLE',
 };
 
 function createPrismaClient() {
@@ -61,7 +63,7 @@ function toNumberOrDefault(value, defaultValue = 0) {
 
 function normalizeMotorStatus(status) {
   const trimmed = String(status ?? '').trim();
-  if (!trimmed) return 'ON_LOCATION';
+  if (!trimmed) return 'IDLE';
 
   return LEGACY_MOTOR_STATUS_MAP[trimmed] ?? trimmed;
 }
@@ -99,8 +101,12 @@ function normalizeMotors(rows) {
     dateOut: toDateOrNull(row.dateOut),
     dateIn: toDateOrNull(row.dateIn),
     status: normalizeMotorStatus(row.status),
-    customStatusId: row.customStatusId ? String(row.customStatusId) : null,
     pumpingHours: toNumberOrDefault(row.pumpingHours),
+    sapId: row.sapId ? String(row.sapId) : null,
+    assetType: row.assetType ? String(row.assetType) : null,
+    size: row.size ? String(row.size) : null,
+    brandType: row.brandType ? String(row.brandType) : null,
+    connection: row.connection ? String(row.connection) : null,
     createdAt: toDateOrNull(row.createdAt) ?? new Date(),
     updatedAt: toDateOrNull(row.updatedAt) ?? new Date(),
   }));

@@ -2,22 +2,25 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
-import { getStatusColor, getStatusLabel, SUB_COMPONENT_LABELS } from '@/lib/utils';
+import { AssetStatusBadge } from '@/components/asset-status-selector';
+import { ASSET_STATUS_META, type AssetStatus } from '@/lib/asset-status';
 
 // ─── API Types ────────────────────────────────────────────────────────────────
-
-type CustomStatus = {
-  label: string;
-  color: string;
-} | null;
 
 type MotorResult = {
   id: string;
   name: string;
   serialNumber: string;
   status: string;
+  statusCode: string;
+  statusLabel: string;
   location: string | null;
-  customStatus: CustomStatus;
+  pumpingHours: number;
+  sapId: string | null;
+  assetType: string | null;
+  size: string | null;
+  brandType: string | null;
+  connection: string | null;
 };
 
 type CurrentMotor = {
@@ -28,10 +31,16 @@ type CurrentMotor = {
 
 type SubComponentResult = {
   id: string;
-  type: string;
   serialNumber: string;
+  sapId: string | null;
+  size: string | null;
+  brand: string | null;
+  configuration: string | null;
   cumulativeHours: number;
+  availabilityStatus: string | null;
   status: string;
+  statusCode: string;
+  statusLabel: string;
   currentMotor: CurrentMotor;
 };
 
@@ -45,40 +54,30 @@ type Section<T> = {
 type SearchResponse = {
   query: string;
   motors: Section<MotorResult>;
-  subComponents: Section<SubComponentResult>;
+  stators: Section<SubComponentResult>;
+  rotors: Section<SubComponentResult>;
+  motorSleeves: Section<SubComponentResult>;
 };
 
 // ─── Internal State ───────────────────────────────────────────────────────────
 
-type PartialSection<T> = {
-  results: T[];
-  total: number;
-  page: number;
-  pageSize: number;
+type SearchState = {
+  motors: Section<MotorResult>;
+  stators: Section<SubComponentResult>;
+  rotors: Section<SubComponentResult>;
+  motorSleeves: Section<SubComponentResult>;
 };
 
-type SearchState = {
-  motors: PartialSection<MotorResult>;
-  subComponents: PartialSection<SubComponentResult>;
-};
+const EMPTY_SECTION = { results: [], total: 0, page: 1, pageSize: 20 };
 
 const EMPTY_STATE: SearchState = {
-  motors: { results: [], total: 0, page: 1, pageSize: 20 },
-  subComponents: { results: [], total: 0, page: 1, pageSize: 20 },
+  motors: { ...EMPTY_SECTION },
+  stators: { ...EMPTY_SECTION },
+  rotors: { ...EMPTY_SECTION },
+  motorSleeves: { ...EMPTY_SECTION },
 };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
-
-function StatusDot({ status, customStatus }: { status: string; customStatus: CustomStatus }) {
-  const color = getStatusColor(status, customStatus?.color);
-  const label = customStatus?.label ?? getStatusLabel(status);
-  return (
-    <span className="inline-flex items-center gap-1.5 text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-md border border-[var(--border)] bg-[#f5f5f5] font-semibold text-[#333333]">
-      <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ backgroundColor: color }} />
-      {label}
-    </span>
-  );
-}
 
 function Spinner() {
   return (
@@ -89,6 +88,25 @@ function Spinner() {
   );
 }
 
+function StatusBadge({ status }: { status: string }) {
+  if (status in ASSET_STATUS_META) {
+    return <AssetStatusBadge status={status as AssetStatus} compact />;
+  }
+  return (
+    <span className="inline-flex items-center gap-1 text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-md border border-[var(--border)] bg-[#f5f5f5] font-semibold text-[#333333]">
+      {status}
+    </span>
+  );
+}
+
+function EmptyCell() {
+  return <span className="text-[#A3A3A3]">—</span>;
+}
+
+// Column header styling
+const TH_CLASS = "px-4 py-2.5 text-left text-[10px] uppercase tracking-wider text-[#9E9EB0] font-semibold whitespace-nowrap";
+const TD_CLASS = "px-4 py-3 whitespace-nowrap";
+
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export function SerialNumberSearch() {
@@ -98,11 +116,16 @@ export function SerialNumberSearch() {
   const [error, setError] = useState<string | null>(null);
   const [data, setData] = useState<SearchState>(EMPTY_STATE);
 
-  // Tracks the in-flight page fetch per section so we can append results
+  // Per-section page tracking
   const [motorPage, setMotorPage] = useState(1);
-  const [subComponentPage, setSubComponentPage] = useState(1);
+  const [statorPage, setStatorPage] = useState(1);
+  const [rotorPage, setRotorPage] = useState(1);
+  const [motorSleevePage, setMotorSleevePage] = useState(1);
+
   const [motorLoadingMore, setMotorLoadingMore] = useState(false);
-  const [subComponentLoadingMore, setSubComponentLoadingMore] = useState(false);
+  const [statorLoadingMore, setStatorLoadingMore] = useState(false);
+  const [rotorLoadingMore, setRotorLoadingMore] = useState(false);
+  const [motorSleeveLoadingMore, setMotorSleeveLoadingMore] = useState(false);
 
   const abortRef = useRef<AbortController | null>(null);
 
@@ -118,11 +141,12 @@ export function SerialNumberSearch() {
       setData(EMPTY_STATE);
       setError(null);
       setMotorPage(1);
-      setSubComponentPage(1);
+      setStatorPage(1);
+      setRotorPage(1);
+      setMotorSleevePage(1);
       return;
     }
 
-    // Abort any in-flight request
     abortRef.current?.abort();
     const controller = new AbortController();
     abortRef.current = controller;
@@ -130,7 +154,9 @@ export function SerialNumberSearch() {
     setLoading(true);
     setError(null);
     setMotorPage(1);
-    setSubComponentPage(1);
+    setStatorPage(1);
+    setRotorPage(1);
+    setMotorSleevePage(1);
 
     fetch(`/api/search?q=${encodeURIComponent(debouncedQuery)}&page=1`, {
       signal: controller.signal,
@@ -142,7 +168,9 @@ export function SerialNumberSearch() {
       .then((json) => {
         setData({
           motors: json.motors,
-          subComponents: json.subComponents,
+          stators: json.stators ?? EMPTY_SECTION,
+          rotors: json.rotors ?? EMPTY_SECTION,
+          motorSleeves: json.motorSleeves ?? EMPTY_SECTION,
         });
       })
       .catch((err) => {
@@ -156,75 +184,56 @@ export function SerialNumberSearch() {
     return () => controller.abort();
   }, [debouncedQuery]);
 
-  // ── Load more: motors ───────────────────────────────────────────────────────
-  const loadMoreMotors = useCallback(async () => {
-    const nextPage = motorPage + 1;
-    setMotorLoadingMore(true);
-    try {
-      const res = await fetch(
-        `/api/search?q=${encodeURIComponent(debouncedQuery)}&page=${nextPage}`,
-      );
-      if (!res.ok) throw new Error('Load more failed');
-      const json = (await res.json()) as SearchResponse;
-      setData((prev) => ({
-        ...prev,
-        motors: {
-          ...json.motors,
-          results: [...prev.motors.results, ...json.motors.results],
-        },
-      }));
-      setMotorPage(nextPage);
-    } catch {
-      setError('Search failed — try again');
-    } finally {
-      setMotorLoadingMore(false);
-    }
-  }, [debouncedQuery, motorPage]);
-
-  // ── Load more: sub-components ───────────────────────────────────────────────
-  const loadMoreSubComponents = useCallback(async () => {
-    const nextPage = subComponentPage + 1;
-    setSubComponentLoadingMore(true);
-    try {
-      const res = await fetch(
-        `/api/search?q=${encodeURIComponent(debouncedQuery)}&page=${nextPage}`,
-      );
-      if (!res.ok) throw new Error('Load more failed');
-      const json = (await res.json()) as SearchResponse;
-      setData((prev) => ({
-        ...prev,
-        subComponents: {
-          ...json.subComponents,
-          results: [...prev.subComponents.results, ...json.subComponents.results],
-        },
-      }));
-      setSubComponentPage(nextPage);
-    } catch {
-      setError('Search failed — try again');
-    } finally {
-      setSubComponentLoadingMore(false);
-    }
-  }, [debouncedQuery, subComponentPage]);
+  // ── Generic load-more ───────────────────────────────────────────────────────
+  const loadMore = useCallback(
+    async (
+      sectionKey: keyof SearchState,
+      currentPage: number,
+      setPage: (p: number) => void,
+      setLoadingMore: (v: boolean) => void,
+    ) => {
+      const nextPage = currentPage + 1;
+      setLoadingMore(true);
+      try {
+        const res = await fetch(
+          `/api/search?q=${encodeURIComponent(debouncedQuery)}&page=${nextPage}`,
+        );
+        if (!res.ok) throw new Error('Load more failed');
+        const json = (await res.json()) as SearchResponse;
+        const newSection = json[sectionKey];
+        setData((prev) => ({
+          ...prev,
+          [sectionKey]: {
+            ...newSection,
+            results: [...prev[sectionKey].results, ...newSection.results],
+          },
+        }));
+        setPage(nextPage);
+      } catch {
+        setError('Search failed — try again');
+      } finally {
+        setLoadingMore(false);
+      }
+    },
+    [debouncedQuery],
+  );
 
   // ── Derived state ───────────────────────────────────────────────────────────
   const hasQuery = debouncedQuery.length >= 1;
   const hasMotors = data.motors.results.length > 0;
-  const hasSubComponents = data.subComponents.results.length > 0;
-  const hasResults = hasMotors || hasSubComponents;
+  const hasStators = data.stators.results.length > 0;
+  const hasRotors = data.rotors.results.length > 0;
+  const hasMotorSleeves = data.motorSleeves.results.length > 0;
+  const hasResults = hasMotors || hasStators || hasRotors || hasMotorSleeves;
   const isEmpty = hasQuery && !loading && !hasResults;
-
-  const motorHasMore = data.motors.total > data.motors.results.length;
-  const subComponentHasMore = data.subComponents.total > data.subComponents.results.length;
 
   return (
     <div className="w-full">
       {/* ── Search Input ─────────────────────────────────────────────────── */}
       <div className="relative">
-        {/* Search icon */}
         <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#9E9EB0] text-sm pointer-events-none select-none">
           ⌕
         </span>
-
         <input
           id="serial-number-search-input"
           type="search"
@@ -235,8 +244,6 @@ export function SerialNumberSearch() {
           spellCheck={false}
           className="w-full bg-[var(--card)] border border-[var(--border)] rounded-xl pl-9 pr-10 py-3 text-sm font-mono text-[#121212] placeholder:text-[#A3A3A3] placeholder:font-sans focus:outline-none focus:border-[#9E9EB0] focus:ring-2 focus:ring-[#9E9EB0]/20 transition-all duration-200"
         />
-
-        {/* Inline spinner — only inside the input, never replaces results */}
         {loading && (
           <span className="absolute right-3.5 top-1/2 -translate-y-1/2">
             <Spinner />
@@ -287,203 +294,284 @@ export function SerialNumberSearch() {
 
           {/* ── Motors Section ─────────────────────────────────────────── */}
           {hasMotors && (
-            <section aria-labelledby="search-motors-heading">
-              <div className="flex items-center justify-between mb-2">
-                <h2
-                  id="search-motors-heading"
-                  className="text-[10px] font-semibold uppercase tracking-widest text-[#9E9EB0]"
-                >
-                  Motors
-                </h2>
-                <span className="text-[10px] text-[#A3A3A3]">
-                  {data.motors.results.length} of {data.motors.total}
-                </span>
-              </div>
-
-              <div className="border border-[var(--border)] rounded-xl overflow-hidden bg-[var(--card)]">
-                <div className="overflow-x-auto">
-                  <table className="w-full min-w-[520px] text-sm">
-                    <thead>
-                      <tr className="border-b border-[var(--border)] bg-[#EBEBEB]">
-                        <th className="px-4 py-2.5 text-left text-[10px] uppercase tracking-wider text-[#9E9EB0] font-semibold whitespace-nowrap">
-                          Serial No.
-                        </th>
-                        <th className="px-4 py-2.5 text-left text-[10px] uppercase tracking-wider text-[#9E9EB0] font-semibold whitespace-nowrap">
-                          Name
-                        </th>
-                        <th className="px-4 py-2.5 text-left text-[10px] uppercase tracking-wider text-[#9E9EB0] font-semibold whitespace-nowrap">
-                          Status
-                        </th>
-                        <th className="px-4 py-2.5 text-left text-[10px] uppercase tracking-wider text-[#9E9EB0] font-semibold whitespace-nowrap">
-                          Location
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-[var(--border)]">
-                      {data.motors.results.map((motor) => (
-                        <tr
-                          key={motor.id}
-                          className="group hover:bg-[var(--card-hover)] transition-colors duration-150"
-                        >
-                          <td className="px-4 py-3 whitespace-nowrap">
-                            <Link
-                              href={`/motors/${motor.id}`}
-                              id={`search-motor-row-${motor.id}`}
-                              className="font-mono text-sm font-semibold text-[#121212] group-hover:text-[#9E9EB0] transition-colors block w-full h-full"
-                            >
-                              {motor.serialNumber}
-                            </Link>
-                          </td>
-                          <td className="px-4 py-3 whitespace-nowrap">
-                            <Link href={`/motors/${motor.id}`} className="block w-full h-full" tabIndex={-1}>
-                              <span className="text-xs text-[#333333]">{motor.name}</span>
-                            </Link>
-                          </td>
-                          <td className="px-4 py-3 whitespace-nowrap">
-                            <Link href={`/motors/${motor.id}`} className="block w-full h-full" tabIndex={-1}>
-                              <StatusDot status={motor.status} customStatus={motor.customStatus} />
-                            </Link>
-                          </td>
-                          <td className="px-4 py-3 whitespace-nowrap">
-                            <Link href={`/motors/${motor.id}`} className="block w-full h-full" tabIndex={-1}>
-                              <span className="text-xs text-[#333333]">
-                                {motor.location ?? <span className="text-[#A3A3A3]">—</span>}
-                              </span>
-                            </Link>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-
-                {/* Load more — motors */}
-                {motorHasMore && (
-                  <div className="border-t border-[var(--border)] px-4 py-3">
-                    <button
-                      id="search-motors-load-more"
-                      onClick={loadMoreMotors}
-                      disabled={motorLoadingMore}
-                      className="w-full text-center text-xs font-semibold text-[#9E9EB0] hover:text-[#121212] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                    >
-                      {motorLoadingMore ? (
-                        <>
-                          <Spinner /> Loading…
-                        </>
-                      ) : (
-                        `Load more (${data.motors.total - data.motors.results.length} remaining)`
-                      )}
-                    </button>
-                  </div>
-                )}
-              </div>
-            </section>
+            <ResultSection
+              id="motors"
+              label="Motors"
+              count={data.motors.results.length}
+              total={data.motors.total}
+              hasMore={data.motors.total > data.motors.results.length}
+              loadingMore={motorLoadingMore}
+              onLoadMore={() => loadMore('motors', motorPage, setMotorPage, setMotorLoadingMore)}
+            >
+              <table className="w-full min-w-[800px] text-sm">
+                <thead>
+                  <tr className="border-b border-[var(--border)] bg-[#EBEBEB]">
+                    <th className={TH_CLASS}>Serial No.</th>
+                    <th className={TH_CLASS}>SAP ID</th>
+                    <th className={TH_CLASS}>Asset Type</th>
+                    <th className={TH_CLASS}>Size</th>
+                    <th className={TH_CLASS}>Brand / Type</th>
+                    <th className={TH_CLASS}>Connection</th>
+                    <th className={TH_CLASS}>Location</th>
+                    <th className={`${TH_CLASS} text-right`}>Pump Hrs</th>
+                    <th className={TH_CLASS}>Status</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[var(--border)]">
+                  {data.motors.results.map((motor) => (
+                    <tr key={motor.id} className="group hover:bg-[var(--card-hover)] transition-colors duration-150">
+                      <td className={TD_CLASS}>
+                        <Link href={`/motors/${motor.id}`} id={`search-motor-row-${motor.id}`} className="font-mono text-sm font-semibold text-[#121212] group-hover:text-[#9E9EB0] transition-colors block">
+                          {motor.serialNumber}
+                        </Link>
+                      </td>
+                      <td className={TD_CLASS}>
+                        <Link href={`/motors/${motor.id}`} className="block" tabIndex={-1}>
+                          <span className="font-mono text-xs text-[#333333]">{motor.sapId ?? <EmptyCell />}</span>
+                        </Link>
+                      </td>
+                      <td className={TD_CLASS}>
+                        <Link href={`/motors/${motor.id}`} className="block" tabIndex={-1}>
+                          <span className="text-xs text-[#333333]">{motor.assetType ?? <EmptyCell />}</span>
+                        </Link>
+                      </td>
+                      <td className={TD_CLASS}>
+                        <Link href={`/motors/${motor.id}`} className="block" tabIndex={-1}>
+                          <span className="text-xs text-[#333333]">{motor.size ?? <EmptyCell />}</span>
+                        </Link>
+                      </td>
+                      <td className={TD_CLASS}>
+                        <Link href={`/motors/${motor.id}`} className="block" tabIndex={-1}>
+                          <span className="text-xs text-[#333333]">{motor.brandType ?? <EmptyCell />}</span>
+                        </Link>
+                      </td>
+                      <td className={TD_CLASS}>
+                        <Link href={`/motors/${motor.id}`} className="block" tabIndex={-1}>
+                          <span className="text-xs text-[#333333]">{motor.connection ?? <EmptyCell />}</span>
+                        </Link>
+                      </td>
+                      <td className={TD_CLASS}>
+                        <Link href={`/motors/${motor.id}`} className="block" tabIndex={-1}>
+                          <span className="text-xs text-[#333333]">{motor.location ?? <EmptyCell />}</span>
+                        </Link>
+                      </td>
+                      <td className={`${TD_CLASS} text-right`}>
+                        <Link href={`/motors/${motor.id}`} className="block" tabIndex={-1}>
+                          <span className="font-mono text-xs font-semibold text-[#121212]">{motor.pumpingHours.toFixed(1)}</span>
+                        </Link>
+                      </td>
+                      <td className={TD_CLASS}>
+                        <Link href={`/motors/${motor.id}`} className="block" tabIndex={-1}>
+                          <StatusBadge status={motor.status} />
+                        </Link>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </ResultSection>
           )}
 
-          {/* ── Sub-Components Section ──────────────────────────────────── */}
-          {hasSubComponents && (
-            <section aria-labelledby="search-parts-heading">
-              <div className="flex items-center justify-between mb-2">
-                <h2
-                  id="search-parts-heading"
-                  className="text-[10px] font-semibold uppercase tracking-widest text-[#9E9EB0]"
-                >
-                  Parts
-                </h2>
-                <span className="text-[10px] text-[#A3A3A3]">
-                  {data.subComponents.results.length} of {data.subComponents.total}
-                </span>
-              </div>
+          {/* ── Stators Section ─────────────────────────────────────────── */}
+          {hasStators && (
+            <AssetCategorySection
+              id="stators"
+              label="Stators"
+              assetType="Stator"
+              data={data.stators}
+              loadingMore={statorLoadingMore}
+              onLoadMore={() => loadMore('stators', statorPage, setStatorPage, setStatorLoadingMore)}
+            />
+          )}
 
-              <div className="border border-[var(--border)] rounded-xl overflow-hidden bg-[var(--card)]">
-                <div className="overflow-x-auto">
-                  <table className="w-full min-w-[520px] text-sm">
-                    <thead>
-                      <tr className="border-b border-[var(--border)] bg-[#EBEBEB]">
-                        <th className="px-4 py-2.5 text-left text-[10px] uppercase tracking-wider text-[#9E9EB0] font-semibold whitespace-nowrap">
-                          Serial No.
-                        </th>
-                        <th className="px-4 py-2.5 text-left text-[10px] uppercase tracking-wider text-[#9E9EB0] font-semibold whitespace-nowrap">
-                          Type
-                        </th>
-                        <th className="px-4 py-2.5 text-left text-[10px] uppercase tracking-wider text-[#9E9EB0] font-semibold whitespace-nowrap">
-                          Cumulative Hours
-                        </th>
-                        <th className="px-4 py-2.5 text-left text-[10px] uppercase tracking-wider text-[#9E9EB0] font-semibold whitespace-nowrap">
-                          Current Motor
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-[var(--border)]">
-                      {data.subComponents.results.map((sc) => (
-                        <tr
-                          key={sc.id}
-                          className="group hover:bg-[var(--card-hover)] transition-colors duration-150"
-                        >
-                          <td className="px-4 py-3 whitespace-nowrap">
-                            <Link
-                              href={`/sub-components/${sc.id}`}
-                              id={`search-sc-row-${sc.id}`}
-                              className="font-mono text-sm font-semibold text-[#121212] group-hover:text-[#9E9EB0] transition-colors block w-full h-full"
-                            >
-                              {sc.serialNumber}
-                            </Link>
-                          </td>
-                          <td className="px-4 py-3 whitespace-nowrap">
-                            <Link href={`/sub-components/${sc.id}`} className="block w-full h-full" tabIndex={-1}>
-                              <span className="text-xs text-[#333333]">
-                                {SUB_COMPONENT_LABELS[sc.type] ?? sc.type}
-                              </span>
-                            </Link>
-                          </td>
-                          <td className="px-4 py-3 whitespace-nowrap">
-                            <Link href={`/sub-components/${sc.id}`} className="block w-full h-full" tabIndex={-1}>
-                              <span className="font-mono text-xs text-[#121212]">
-                                {sc.cumulativeHours.toFixed(1)} hrs
-                              </span>
-                            </Link>
-                          </td>
-                          <td className="px-4 py-3 whitespace-nowrap">
-                            <Link href={`/sub-components/${sc.id}`} className="block w-full h-full" tabIndex={-1}>
-                              {sc.currentMotor ? (
-                                <span className="font-mono text-xs text-[#333333]">
-                                  {sc.currentMotor.serialNumber}
-                                </span>
-                              ) : (
-                                <span className="text-xs text-[#A3A3A3]">Unassigned</span>
-                              )}
-                            </Link>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+          {/* ── Rotors Section ─────────────────────────────────────────── */}
+          {hasRotors && (
+            <AssetCategorySection
+              id="rotors"
+              label="Rotors"
+              assetType="Rotor"
+              data={data.rotors}
+              loadingMore={rotorLoadingMore}
+              onLoadMore={() => loadMore('rotors', rotorPage, setRotorPage, setRotorLoadingMore)}
+            />
+          )}
 
-                {/* Load more — sub-components */}
-                {subComponentHasMore && (
-                  <div className="border-t border-[var(--border)] px-4 py-3">
-                    <button
-                      id="search-parts-load-more"
-                      onClick={loadMoreSubComponents}
-                      disabled={subComponentLoadingMore}
-                      className="w-full text-center text-xs font-semibold text-[#9E9EB0] hover:text-[#121212] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                    >
-                      {subComponentLoadingMore ? (
-                        <>
-                          <Spinner /> Loading…
-                        </>
-                      ) : (
-                        `Load more (${data.subComponents.total - data.subComponents.results.length} remaining)`
-                      )}
-                    </button>
-                  </div>
-                )}
-              </div>
-            </section>
+          {/* ── Motor Sleeves Section ──────────────────────────────────── */}
+          {hasMotorSleeves && (
+            <AssetCategorySection
+              id="motorSleeves"
+              label="Motor Sleeves"
+              assetType="Motor Sleeve"
+              data={data.motorSleeves}
+              loadingMore={motorSleeveLoadingMore}
+              onLoadMore={() => loadMore('motorSleeves', motorSleevePage, setMotorSleevePage, setMotorSleeveLoadingMore)}
+            />
           )}
         </div>
       )}
     </div>
+  );
+}
+
+// ─── Reusable Section Wrapper ─────────────────────────────────────────────────
+
+function ResultSection({
+  id,
+  label,
+  count,
+  total,
+  hasMore,
+  loadingMore,
+  onLoadMore,
+  children,
+}: {
+  id: string;
+  label: string;
+  count: number;
+  total: number;
+  hasMore: boolean;
+  loadingMore: boolean;
+  onLoadMore: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <section aria-labelledby={`search-${id}-heading`}>
+      <div className="flex items-center justify-between mb-2">
+        <h2 id={`search-${id}-heading`} className="text-[10px] font-semibold uppercase tracking-widest text-[#9E9EB0]">
+          {label}
+        </h2>
+        <span className="text-[10px] text-[#A3A3A3]">
+          {count} of {total}
+        </span>
+      </div>
+
+      <div className="border border-[var(--border)] rounded-xl overflow-hidden bg-[var(--card)]">
+        <div className="overflow-x-auto">
+          {children}
+        </div>
+
+        {hasMore && (
+          <div className="border-t border-[var(--border)] px-4 py-3">
+            <button
+              id={`search-${id}-load-more`}
+              onClick={onLoadMore}
+              disabled={loadingMore}
+              className="w-full text-center text-xs font-semibold text-[#9E9EB0] hover:text-[#121212] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            >
+              {loadingMore ? (
+                <>
+                  <Spinner /> Loading…
+                </>
+              ) : (
+                `Load more (${total - count} remaining)`
+              )}
+            </button>
+          </div>
+        )}
+      </div>
+    </section>
+  );
+}
+
+// ─── Asset Category Section (Stators / Rotors / Motor Sleeves) ────────────────
+
+function AssetCategorySection({
+  id,
+  label,
+  assetType,
+  data,
+  loadingMore,
+  onLoadMore,
+}: {
+  id: string;
+  label: string;
+  assetType: string;
+  data: Section<SubComponentResult>;
+  loadingMore: boolean;
+  onLoadMore: () => void;
+}) {
+  return (
+    <ResultSection
+      id={id}
+      label={label}
+      count={data.results.length}
+      total={data.total}
+      hasMore={data.total > data.results.length}
+      loadingMore={loadingMore}
+      onLoadMore={onLoadMore}
+    >
+      <table className="w-full min-w-[800px] text-sm">
+        <thead>
+          <tr className="border-b border-[var(--border)] bg-[#EBEBEB]">
+            <th className={TH_CLASS}>Serial No.</th>
+            <th className={TH_CLASS}>SAP ID</th>
+            <th className={TH_CLASS}>Asset Type</th>
+            <th className={TH_CLASS}>Size</th>
+            <th className={TH_CLASS}>Brand / Type</th>
+            <th className={TH_CLASS}>Configuration</th>
+            <th className={TH_CLASS}>Location</th>
+            <th className={`${TH_CLASS} text-right`}>Pump Hrs</th>
+            <th className={TH_CLASS}>Status</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-[var(--border)]">
+          {data.results.map((sc) => {
+            const location = sc.currentMotor
+              ? (sc.currentMotor.name || sc.currentMotor.serialNumber)
+              : null;
+
+            return (
+              <tr key={sc.id} className="group hover:bg-[var(--card-hover)] transition-colors duration-150">
+                <td className={TD_CLASS}>
+                  <Link href={`/sub-components/${sc.id}`} id={`search-${id}-row-${sc.id}`} className="font-mono text-sm font-semibold text-[#121212] group-hover:text-[#9E9EB0] transition-colors block">
+                    {sc.serialNumber}
+                  </Link>
+                </td>
+                <td className={TD_CLASS}>
+                  <Link href={`/sub-components/${sc.id}`} className="block" tabIndex={-1}>
+                    <span className="font-mono text-xs text-[#333333]">{sc.sapId ?? <EmptyCell />}</span>
+                  </Link>
+                </td>
+                <td className={TD_CLASS}>
+                  <Link href={`/sub-components/${sc.id}`} className="block" tabIndex={-1}>
+                    <span className="text-xs text-[#333333]">{assetType}</span>
+                  </Link>
+                </td>
+                <td className={TD_CLASS}>
+                  <Link href={`/sub-components/${sc.id}`} className="block" tabIndex={-1}>
+                    <span className="text-xs text-[#333333]">{sc.size ?? <EmptyCell />}</span>
+                  </Link>
+                </td>
+                <td className={TD_CLASS}>
+                  <Link href={`/sub-components/${sc.id}`} className="block" tabIndex={-1}>
+                    <span className="text-xs text-[#333333]">{sc.brand ?? <EmptyCell />}</span>
+                  </Link>
+                </td>
+                <td className={TD_CLASS}>
+                  <Link href={`/sub-components/${sc.id}`} className="block" tabIndex={-1}>
+                    <span className="text-xs text-[#333333]">{sc.configuration ?? <EmptyCell />}</span>
+                  </Link>
+                </td>
+                <td className={TD_CLASS}>
+                  <Link href={`/sub-components/${sc.id}`} className="block" tabIndex={-1}>
+                    <span className="text-xs text-[#333333]">{location ?? <EmptyCell />}</span>
+                  </Link>
+                </td>
+                <td className={`${TD_CLASS} text-right`}>
+                  <Link href={`/sub-components/${sc.id}`} className="block" tabIndex={-1}>
+                    <span className="font-mono text-xs font-semibold text-[#121212]">{sc.cumulativeHours.toFixed(1)}</span>
+                  </Link>
+                </td>
+                <td className={TD_CLASS}>
+                  <Link href={`/sub-components/${sc.id}`} className="block" tabIndex={-1}>
+                    <StatusBadge status={sc.status} />
+                  </Link>
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </ResultSection>
   );
 }

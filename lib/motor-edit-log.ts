@@ -7,6 +7,11 @@ export const MOTOR_EDITABLE_FIELDS = [
   'dateOut',
   'dateIn',
   'status',
+  'sapId',
+  'assetType',
+  'size',
+  'brandType',
+  'connection',
 ] as const;
 
 export type MotorEditableField = (typeof MOTOR_EDITABLE_FIELDS)[number];
@@ -25,6 +30,11 @@ export type MotorEditableSnapshot = {
   dateOut: Date | string | null;
   dateIn: Date | string | null;
   status: string | null;
+  sapId: string | null;
+  assetType: string | null;
+  size: string | null;
+  brandType: string | null;
+  connection: string | null;
 };
 
 const MOTOR_FIELD_LABELS: Record<MotorEditableField, string> = {
@@ -34,6 +44,11 @@ const MOTOR_FIELD_LABELS: Record<MotorEditableField, string> = {
   dateOut: 'Date Out',
   dateIn: 'Date In',
   status: 'Status',
+  sapId: 'SAP ID',
+  assetType: 'Asset Type',
+  size: 'Size',
+  brandType: 'Brand / Type',
+  connection: 'Connection',
 };
 
 function toDateInputString(value: Date | string | null | undefined): string | null {

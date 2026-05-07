@@ -1,24 +1,18 @@
 import { getMotors } from '@/actions/motor.actions';
-import { getCustomStatuses } from '@/actions/custom-status.actions';
 import { SerialNumberSearch } from '@/components/SerialNumberSearch';
-import {
-  STANDARD_MOTOR_STATUSES,
-  MOTOR_STATUS_LABELS,
-  MOTOR_STATUS_COLORS,
-} from '@/lib/utils';
+import { ASSET_STATUS_META, type AssetStatus } from '@/lib/asset-status';
 import Link from 'next/link';
 
 export const dynamic = 'force-dynamic';
 
 export default async function DashboardPage() {
-  const [motors, customStatuses] = await Promise.all([
-    getMotors(),
-    getCustomStatuses(),
-  ]);
+  const motors = await getMotors();
 
   const totalMotors = motors.length;
-  const onLocationMotors = motors.filter((m) => m.status === 'ON_LOCATION').length;
+  const onJobMotors = motors.filter((m) => m.status === 'ON_JOB').length;
   const totalParts = motors.reduce((sum, m) => sum + m._count.assemblies, 0);
+
+  const statusEntries = Object.entries(ASSET_STATUS_META) as [AssetStatus, typeof ASSET_STATUS_META[AssetStatus]][];
 
   return (
     <div>
@@ -39,30 +33,23 @@ export default async function DashboardPage() {
       {/* Stats grid */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6 animate-fade-in stagger-1">
         <StatCard label="Total Motors" value={totalMotors.toString()} />
-        <StatCard label="On Location" value={onLocationMotors.toString()} />
+        <StatCard label="On Job" value={onJobMotors.toString()} />
         <StatCard label="Assembled Parts" value={totalParts.toString()} />
       </div>
 
       {/* Status Legend */}
       <div className="bg-[var(--card)] border border-[var(--border)] rounded-xl p-4 mb-8 animate-fade-in stagger-2">
         <p className="text-[10px] text-[#333333] uppercase tracking-wider mb-3 font-medium">Status Legend</p>
-        <div className="flex flex-wrap gap-x-5 gap-y-2">
-          {STANDARD_MOTOR_STATUSES.map((s) => (
-            <div key={s} className="flex items-center gap-2">
+        <div className="flex flex-wrap gap-x-4 gap-y-2">
+          {statusEntries.map(([statusKey, meta]) => (
+            <div key={statusKey} className="flex items-center gap-1.5">
               <span
-                className="inline-block w-2.5 h-2.5 rounded-full flex-shrink-0"
-                style={{ backgroundColor: MOTOR_STATUS_COLORS[s] }}
-              />
-              <span className="text-xs text-[#333333]">{MOTOR_STATUS_LABELS[s]}</span>
-            </div>
-          ))}
-          {customStatuses.map((cs) => (
-            <div key={cs.id} className="flex items-center gap-2">
-              <span
-                className="inline-block w-2.5 h-2.5 rounded-full flex-shrink-0"
-                style={{ backgroundColor: cs.color }}
-              />
-              <span className="text-xs text-[#333333]">{cs.label}</span>
+                className="inline-flex items-center justify-center w-5 h-5 rounded text-[10px] font-bold leading-none flex-shrink-0"
+                style={{ backgroundColor: meta.color, color: meta.textColor }}
+              >
+                {meta.code}
+              </span>
+              <span className="text-xs text-[#333333]">{meta.label}</span>
             </div>
           ))}
         </div>

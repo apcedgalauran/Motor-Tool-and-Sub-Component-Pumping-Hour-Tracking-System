@@ -1,11 +1,12 @@
 'use client';
 
 import DateField from '@/components/DateField';
-import { StatusSelector } from '@/components/StatusSelector';
-import { formatDate, getStatusColor, getStatusLabel } from '@/lib/utils';
+import { AssetStatusSelector, AssetStatusBadge } from '@/components/asset-status-selector';
+import { ASSET_STATUS_META, type AssetStatus } from '@/lib/asset-status';
+import { formatDate } from '@/lib/utils';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 
 type InlineMotor = {
   id: string;
@@ -15,9 +16,12 @@ type InlineMotor = {
   dateOut: string | null;
   dateIn: string | null;
   status: string;
-  customStatusId: string | null;
-  customStatusColor: string | null;
   pumpingHours: number;
+  sapId: string | null;
+  assetType: string | null;
+  size: string | null;
+  brandType: string | null;
+  connection: string | null;
 };
 
 type Notice = {
@@ -52,6 +56,11 @@ function toDateInputValue(value: unknown): string | null {
   return null;
 }
 
+/** Resolve status to a valid AssetStatus, falling back to IDLE */
+function resolveStatus(status: string): AssetStatus {
+  return status in ASSET_STATUS_META ? (status as AssetStatus) : 'IDLE';
+}
+
 export function MotorInlineEditor({ initialMotor, activeAssembliesCount }: MotorInlineEditorProps) {
   const router = useRouter();
 
@@ -60,7 +69,6 @@ export function MotorInlineEditor({ initialMotor, activeAssembliesCount }: Motor
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [notice, setNotice] = useState<Notice | null>(null);
-  const [statusSelectorKey, setStatusSelectorKey] = useState(0);
   const [dateFieldKey, setDateFieldKey] = useState(0);
 
   useEffect(() => {
@@ -69,11 +77,6 @@ export function MotorInlineEditor({ initialMotor, activeAssembliesCount }: Motor
     return () => clearTimeout(timer);
   }, [notice]);
 
-  const dotColor = useMemo(
-    () => getStatusColor(motor.status, motor.customStatusColor),
-    [motor.customStatusColor, motor.status]
-  );
-
   const secondaryButtonClass =
     'w-full md:w-auto text-center bg-transparent text-[#333333] border border-[var(--border)] text-sm font-semibold font-mono px-4 py-3 md:py-2.5 rounded-lg hover:bg-[var(--card-hover)] transition-colors';
   const primaryButtonClass =
@@ -81,7 +84,6 @@ export function MotorInlineEditor({ initialMotor, activeAssembliesCount }: Motor
 
   function openEditor() {
     setDraft(motor);
-    setStatusSelectorKey((value) => value + 1);
     setDateFieldKey((value) => value + 1);
     setNotice(null);
     setIsEditing(true);
@@ -89,7 +91,6 @@ export function MotorInlineEditor({ initialMotor, activeAssembliesCount }: Motor
 
   function cancelEditor() {
     setDraft(motor);
-    setStatusSelectorKey((value) => value + 1);
     setDateFieldKey((value) => value + 1);
     setNotice(null);
     setIsEditing(false);
@@ -109,8 +110,12 @@ export function MotorInlineEditor({ initialMotor, activeAssembliesCount }: Motor
       location: String(formData.get('location') ?? '').trim(),
       dateOut: String(formData.get('dateOut') ?? '').trim(),
       dateIn: String(formData.get('dateIn') ?? '').trim(),
-      status: String(formData.get('status') ?? '').trim(),
-      customStatusId: String(formData.get('customStatusId') ?? '').trim(),
+      status: draft.status,
+      sapId: draft.sapId,
+      assetType: draft.assetType,
+      size: draft.size,
+      brandType: draft.brandType,
+      connection: draft.connection,
     };
 
     if (!payload.name) {
@@ -142,7 +147,11 @@ export function MotorInlineEditor({ initialMotor, activeAssembliesCount }: Motor
           dateOut: payload.dateOut || null,
           dateIn: payload.dateIn || null,
           status: payload.status,
-          customStatusId: payload.customStatusId || null,
+          sapId: payload.sapId || null,
+          assetType: payload.assetType || null,
+          size: payload.size || null,
+          brandType: payload.brandType || null,
+          connection: payload.connection || null,
         }),
       });
 
@@ -158,9 +167,12 @@ export function MotorInlineEditor({ initialMotor, activeAssembliesCount }: Motor
         dateOut: string | null;
         dateIn: string | null;
         status: string;
-        customStatusId: string | null;
         pumpingHours: number;
-        customStatus?: { color?: string | null } | null;
+        sapId: string | null;
+        assetType: string | null;
+        size: string | null;
+        brandType: string | null;
+        connection: string | null;
       };
 
       const nextMotor: InlineMotor = {
@@ -171,9 +183,12 @@ export function MotorInlineEditor({ initialMotor, activeAssembliesCount }: Motor
         dateOut: toDateInputValue(updatedMotor.dateOut),
         dateIn: toDateInputValue(updatedMotor.dateIn),
         status: updatedMotor.status,
-        customStatusId: updatedMotor.customStatusId,
-        customStatusColor: updatedMotor.customStatus?.color ?? null,
         pumpingHours: updatedMotor.pumpingHours,
+        sapId: updatedMotor.sapId ?? null,
+        assetType: updatedMotor.assetType ?? null,
+        size: updatedMotor.size ?? null,
+        brandType: updatedMotor.brandType ?? null,
+        connection: updatedMotor.connection ?? null,
       };
 
       setMotor(nextMotor);
@@ -232,29 +247,83 @@ export function MotorInlineEditor({ initialMotor, activeAssembliesCount }: Motor
                     />
                   </div>
 
-                  <StatusSelector
-                    key={statusSelectorKey}
-                    defaultStatus={draft.status}
-                    defaultCustomStatusId={draft.customStatusId}
+                  <AssetStatusSelector
+                    value={resolveStatus(draft.status)}
+                    onChange={(newStatus) => updateDraftField('status', newStatus)}
+                    name="status"
                   />
+                </div>
+
+                <div className="border-t border-[var(--border)] pt-4 mt-2">
+                  <p className="text-[10px] text-[#9E9EB0] uppercase tracking-wider font-semibold mb-3">Motor Specifications</p>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-3">
+                    <div>
+                      <label className="block text-xs text-[#333333] mb-1.5 uppercase tracking-wider">SAP ID</label>
+                      <input
+                        value={draft.sapId ?? ''}
+                        onChange={(event) => updateDraftField('sapId', event.target.value)}
+                        placeholder="SAP asset ID"
+                        className="w-full bg-[#EBEBEB] border border-[var(--border)] rounded-lg px-3 py-3 md:py-2.5 text-sm text-[#333333] placeholder:text-[#A3A3A3] focus:outline-none focus:border-[#9E9EB0] focus:ring-1 focus:ring-[#9E9EB0]/30 transition-colors"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs text-[#333333] mb-1.5 uppercase tracking-wider">Asset Type</label>
+                      <input
+                        value={draft.assetType ?? ''}
+                        onChange={(event) => updateDraftField('assetType', event.target.value)}
+                        placeholder="Motor"
+                        className="w-full bg-[#EBEBEB] border border-[var(--border)] rounded-lg px-3 py-3 md:py-2.5 text-sm text-[#333333] placeholder:text-[#A3A3A3] focus:outline-none focus:border-[#9E9EB0] focus:ring-1 focus:ring-[#9E9EB0]/30 transition-colors"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs text-[#333333] mb-1.5 uppercase tracking-wider">Size</label>
+                      <input
+                        value={draft.size ?? ''}
+                        onChange={(event) => updateDraftField('size', event.target.value)}
+                        placeholder='e.g. 9 5/8"'
+                        className="w-full bg-[#EBEBEB] border border-[var(--border)] rounded-lg px-3 py-3 md:py-2.5 text-sm text-[#333333] placeholder:text-[#A3A3A3] focus:outline-none focus:border-[#9E9EB0] focus:ring-1 focus:ring-[#9E9EB0]/30 transition-colors"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs text-[#333333] mb-1.5 uppercase tracking-wider">Brand / Type</label>
+                      <input
+                        value={draft.brandType ?? ''}
+                        onChange={(event) => updateDraftField('brandType', event.target.value)}
+                        placeholder="Brand or type label"
+                        className="w-full bg-[#EBEBEB] border border-[var(--border)] rounded-lg px-3 py-3 md:py-2.5 text-sm text-[#333333] placeholder:text-[#A3A3A3] focus:outline-none focus:border-[#9E9EB0] focus:ring-1 focus:ring-[#9E9EB0]/30 transition-colors"
+                      />
+                    </div>
+                    <div className="md:col-span-2">
+                      <label className="block text-xs text-[#333333] mb-1.5 uppercase tracking-wider">Connection</label>
+                      <input
+                        value={draft.connection ?? ''}
+                        onChange={(event) => updateDraftField('connection', event.target.value)}
+                        placeholder="Connection type"
+                        className="w-full bg-[#EBEBEB] border border-[var(--border)] rounded-lg px-3 py-3 md:py-2.5 text-sm text-[#333333] placeholder:text-[#A3A3A3] focus:outline-none focus:border-[#9E9EB0] focus:ring-1 focus:ring-[#9E9EB0]/30 transition-colors"
+                      />
+                    </div>
+                  </div>
                 </div>
               </div>
             ) : (
               <>
                 <div className="flex flex-wrap items-center gap-2 md:gap-3 mb-1">
                   <h1 className="text-2xl font-bold text-[#121212] tracking-tight break-words">{motor.name}</h1>
-                  <span className="flex items-center gap-1.5 text-[10px] uppercase tracking-wider px-2 py-1 rounded-md border font-semibold bg-[#f5f5f5] border-[#ddd] text-[#333333]">
-                    <span
-                      className="inline-block w-2 h-2 rounded-full flex-shrink-0"
-                      style={{ backgroundColor: dotColor }}
-                    />
-                    {getStatusLabel(motor.status)}
-                  </span>
+                  <AssetStatusBadge status={resolveStatus(motor.status)} />
                 </div>
                 <p className="text-base md:text-lg text-[#1F1F1F] font-semibold font-mono tracking-wide break-all">
                   {motor.serialNumber}
                 </p>
                 {motor.location && <p className="text-xs text-[#333333] mt-1">{motor.location}</p>}
+                {(motor.sapId || motor.assetType || motor.size || motor.brandType || motor.connection) && (
+                  <div className="flex flex-wrap gap-x-4 gap-y-0.5 mt-2">
+                    {motor.sapId && <span className="text-[10px] text-[#A3A3A3]"><span className="font-semibold text-[#9E9EB0]">SAP:</span> {motor.sapId}</span>}
+                    {motor.assetType && <span className="text-[10px] text-[#A3A3A3]"><span className="font-semibold text-[#9E9EB0]">Type:</span> {motor.assetType}</span>}
+                    {motor.size && <span className="text-[10px] text-[#A3A3A3]"><span className="font-semibold text-[#9E9EB0]">Size:</span> {motor.size}</span>}
+                    {motor.brandType && <span className="text-[10px] text-[#A3A3A3]"><span className="font-semibold text-[#9E9EB0]">Brand:</span> {motor.brandType}</span>}
+                    {motor.connection && <span className="text-[10px] text-[#A3A3A3]"><span className="font-semibold text-[#9E9EB0]">Conn:</span> {motor.connection}</span>}
+                  </div>
+                )}
               </>
             )}
           </div>

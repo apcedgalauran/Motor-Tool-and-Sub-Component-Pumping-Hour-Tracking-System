@@ -5,7 +5,8 @@ import { useRouter } from 'next/navigation';
 import { getMotor, updateMotor } from '@/actions/motor.actions';
 import Link from 'next/link';
 import DateField from '@/components/DateField';
-import { StatusSelector } from '@/components/StatusSelector';
+import { AssetStatusSelector } from '@/components/asset-status-selector';
+import { ASSET_STATUS_META, type AssetStatus } from '@/lib/asset-status';
 
 type MotorData = {
   id: string;
@@ -15,7 +16,11 @@ type MotorData = {
   dateOut: string | null;
   dateIn: string | null;
   status: string;
-  customStatusId: string | null;
+  sapId: string | null;
+  assetType: string | null;
+  size: string | null;
+  brandType: string | null;
+  connection: string | null;
 };
 
 export default function EditMotorPage({ params }: { params: Promise<{ id: string }> }) {
@@ -24,6 +29,12 @@ export default function EditMotorPage({ params }: { params: Promise<{ id: string
   const [fetching, setFetching] = useState(true);
   const [error, setError] = useState('');
   const [motor, setMotor] = useState<MotorData | null>(null);
+  const [editStatus, setEditStatus] = useState<AssetStatus>('IDLE');
+  const [editSapId, setEditSapId] = useState('');
+  const [editAssetType, setEditAssetType] = useState('');
+  const [editSize, setEditSize] = useState('');
+  const [editBrandType, setEditBrandType] = useState('');
+  const [editConnection, setEditConnection] = useState('');
 
   useEffect(() => {
     params.then(async ({ id }) => {
@@ -40,8 +51,18 @@ export default function EditMotorPage({ params }: { params: Promise<{ id: string
         dateOut: m.dateOut ? new Date(m.dateOut).toISOString().split('T')[0] : null,
         dateIn: m.dateIn ? new Date(m.dateIn).toISOString().split('T')[0] : null,
         status: m.status,
-        customStatusId: m.customStatusId,
+        sapId: m.sapId ?? null,
+        assetType: m.assetType ?? null,
+        size: m.size ?? null,
+        brandType: m.brandType ?? null,
+        connection: m.connection ?? null,
       });
+      setEditStatus((m.status in ASSET_STATUS_META ? m.status : 'IDLE') as AssetStatus);
+      setEditSapId(m.sapId ?? '');
+      setEditAssetType(m.assetType ?? '');
+      setEditSize(m.size ?? '');
+      setEditBrandType(m.brandType ?? '');
+      setEditConnection(m.connection ?? '');
       setFetching(false);
     });
   }, [params, router]);
@@ -61,8 +82,12 @@ export default function EditMotorPage({ params }: { params: Promise<{ id: string
         location: (formData.get('location') as string) || undefined,
         dateOut: (formData.get('dateOut') as string) || null,
         dateIn: (formData.get('dateIn') as string) || null,
-        status: (formData.get('status') as string) || 'ON_LOCATION',
-        customStatusId: (formData.get('customStatusId') as string) || null,
+        status: editStatus,
+        sapId: editSapId || null,
+        assetType: editAssetType || null,
+        size: editSize || null,
+        brandType: editBrandType || null,
+        connection: editConnection || null,
       });
       router.push(`/motors/${motor.id}`);
     } catch (err) {
@@ -131,7 +156,62 @@ export default function EditMotorPage({ params }: { params: Promise<{ id: string
           <DateField name="dateIn" label="Date In" placeholder="Select return date" defaultValue={motor.dateIn || undefined} />
         </div>
 
-        <StatusSelector defaultStatus={motor.status} defaultCustomStatusId={motor.customStatusId} />
+        <div className="border-t border-[var(--border)] pt-4 mt-2">
+          <p className="text-[10px] text-[#9E9EB0] uppercase tracking-wider font-semibold mb-3">Motor Specifications</p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-3">
+            <div>
+              <label className="block text-xs text-[#333333] mb-1.5 uppercase tracking-wider">SAP ID</label>
+              <input
+                value={editSapId}
+                onChange={(e) => setEditSapId(e.target.value)}
+                placeholder="SAP asset ID"
+                className="w-full bg-[#EBEBEB] border border-[var(--border)] rounded-lg px-3 py-3 md:py-2.5 text-sm text-[#333333] placeholder:text-[#A3A3A3] focus:outline-none focus:border-[#9E9EB0] focus:ring-1 focus:ring-[#9E9EB0]/30 transition-colors"
+              />
+            </div>
+            <div>
+              <label className="block text-xs text-[#333333] mb-1.5 uppercase tracking-wider">Asset Type</label>
+              <input
+                value={editAssetType}
+                onChange={(e) => setEditAssetType(e.target.value)}
+                placeholder="Motor"
+                className="w-full bg-[#EBEBEB] border border-[var(--border)] rounded-lg px-3 py-3 md:py-2.5 text-sm text-[#333333] placeholder:text-[#A3A3A3] focus:outline-none focus:border-[#9E9EB0] focus:ring-1 focus:ring-[#9E9EB0]/30 transition-colors"
+              />
+            </div>
+            <div>
+              <label className="block text-xs text-[#333333] mb-1.5 uppercase tracking-wider">Size</label>
+              <input
+                value={editSize}
+                onChange={(e) => setEditSize(e.target.value)}
+                placeholder='e.g. 9 5/8"'
+                className="w-full bg-[#EBEBEB] border border-[var(--border)] rounded-lg px-3 py-3 md:py-2.5 text-sm text-[#333333] placeholder:text-[#A3A3A3] focus:outline-none focus:border-[#9E9EB0] focus:ring-1 focus:ring-[#9E9EB0]/30 transition-colors"
+              />
+            </div>
+            <div>
+              <label className="block text-xs text-[#333333] mb-1.5 uppercase tracking-wider">Brand / Type</label>
+              <input
+                value={editBrandType}
+                onChange={(e) => setEditBrandType(e.target.value)}
+                placeholder="Brand or type label"
+                className="w-full bg-[#EBEBEB] border border-[var(--border)] rounded-lg px-3 py-3 md:py-2.5 text-sm text-[#333333] placeholder:text-[#A3A3A3] focus:outline-none focus:border-[#9E9EB0] focus:ring-1 focus:ring-[#9E9EB0]/30 transition-colors"
+              />
+            </div>
+            <div className="md:col-span-2">
+              <label className="block text-xs text-[#333333] mb-1.5 uppercase tracking-wider">Connection</label>
+              <input
+                value={editConnection}
+                onChange={(e) => setEditConnection(e.target.value)}
+                placeholder="Connection type"
+                className="w-full bg-[#EBEBEB] border border-[var(--border)] rounded-lg px-3 py-3 md:py-2.5 text-sm text-[#333333] placeholder:text-[#A3A3A3] focus:outline-none focus:border-[#9E9EB0] focus:ring-1 focus:ring-[#9E9EB0]/30 transition-colors"
+              />
+            </div>
+          </div>
+        </div>
+
+        <AssetStatusSelector
+          value={editStatus}
+          onChange={setEditStatus}
+          name="status"
+        />
 
         {error && (
           <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-lg text-xs text-red-500">

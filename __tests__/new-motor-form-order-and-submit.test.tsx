@@ -20,8 +20,8 @@ vi.mock('@/components/DateField', () => ({
   },
 }));
 
-vi.mock('@/components/StatusSelector', () => ({
-  StatusSelector: function MockStatusSelector() {
+vi.mock('@/components/asset-status-selector', () => ({
+  AssetStatusSelector: function MockAssetStatusSelector() {
     return null;
   },
 }));
@@ -36,7 +36,7 @@ vi.mock('react', async () => {
 });
 
 import NewMotorPage from '@/app/motors/new/page';
-import { StatusSelector } from '@/components/StatusSelector';
+import { AssetStatusSelector } from '@/components/asset-status-selector';
 
 const originalFormData = globalThis.FormData;
 
@@ -144,7 +144,7 @@ describe('NewMotorPage form order and submit', () => {
       (child): child is ReactElement => isValidElement(child)
     );
 
-    expect(topLevelChildren.length).toBeGreaterThanOrEqual(5);
+    expect(topLevelChildren.length).toBeGreaterThanOrEqual(7);
     expect(getContainerLabel(topLevelChildren[0])).toBe('Serial Number *');
     expect(getContainerLabel(topLevelChildren[1])).toBe('Motor Name / ID *');
     expect(getContainerLabel(topLevelChildren[2])).toBe('Location');
@@ -154,7 +154,8 @@ describe('NewMotorPage form order and submit', () => {
     );
 
     expect(dateChildren.map((child) => (child.props as { label?: string }).label)).toEqual(['Date Out', 'Date In']);
-    expect(topLevelChildren[4].type).toBe(StatusSelector);
+    // Index 4 is the Motor Specifications section
+    expect(topLevelChildren[5].type).toBe(AssetStatusSelector);
 
     const serialInput = findInputByName(form, 'serialNumber');
     const nameInput = findInputByName(form, 'name');
@@ -203,8 +204,12 @@ describe('NewMotorPage form order and submit', () => {
       location: 'Rig 4',
       dateOut: '2026-04-01',
       dateIn: '2026-04-08',
-      status: 'ON_LOCATION',
-      customStatusId: undefined,
+      status: 'IDLE',
+      sapId: undefined,
+      assetType: undefined,
+      size: undefined,
+      brandType: undefined,
+      connection: undefined,
     });
     expect(pushMock).toHaveBeenCalledWith('/motors');
   });

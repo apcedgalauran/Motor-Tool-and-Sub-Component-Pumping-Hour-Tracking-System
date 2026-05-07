@@ -124,9 +124,12 @@ export default async function MotorDetailPage({ params }: { params: Promise<{ id
           dateOut: toDateInputValue(motor.dateOut),
           dateIn: toDateInputValue(motor.dateIn),
           status: motor.status,
-          customStatusId: motor.customStatusId,
-          customStatusColor: motor.customStatus?.color ?? null,
           pumpingHours: motor.pumpingHours,
+          sapId: motor.sapId ?? null,
+          assetType: motor.assetType ?? null,
+          size: motor.size ?? null,
+          brandType: motor.brandType ?? null,
+          connection: motor.connection ?? null,
         }}
         activeAssembliesCount={activeAssemblies.length}
       />
