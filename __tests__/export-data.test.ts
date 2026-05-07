@@ -16,18 +16,23 @@ describe('export-data utilities', () => {
         name: 'Motor Alpha',
         serialNumber: 'SN-001',
         location: 'Rig 1',
-        status: 'ON_LOCATION',
+        status: 'ON_JOB',
         pumpingHours: 120,
         dateOut: '2026-04-01',
         dateIn: null,
         assembledParts: 3,
+        sapId: 'SAP-001',
+        assetType: 'Motor',
+        size: '9 5/8"',
+        brandType: 'RADIUS',
+        connection: 'STD',
       },
       {
         id: 'm-2',
         name: 'Motor Bravo',
         serialNumber: 'SN-002',
         location: 'Rig 2',
-        status: 'IN_BASE',
+        status: 'IDLE',
         pumpingHours: 80,
         dateOut: '2026-04-05',
         dateIn: null,
@@ -47,7 +52,7 @@ describe('export-data utilities', () => {
     ];
 
     const filtered = filterMotorRecords(motors, {
-      statuses: ['ON_LOCATION', 'IN_BASE'],
+      statuses: ['ON_JOB', 'IDLE'],
       dateOutFrom: '2026-04-01',
       dateOutTo: '2026-04-05',
       minHours: 90,
@@ -57,7 +62,7 @@ describe('export-data utilities', () => {
     expect(filtered[0].id).toBe('m-1');
 
     const strictThreshold = filterMotorRecords(motors, {
-      statuses: ['ON_LOCATION'],
+      statuses: ['ON_JOB'],
       minHours: 120,
     });
 
@@ -118,11 +123,16 @@ describe('export-data utilities', () => {
         name: 'Motor Alpha',
         serialNumber: 'SN-001',
         location: 'Rig "A", North',
-        status: 'ON_LOCATION',
+        status: 'ON_JOB',
         pumpingHours: 120,
         dateOut: '2026-04-01',
         dateIn: null,
         assembledParts: 3,
+        sapId: 'SAP-001',
+        assetType: 'Motor',
+        size: '9 5/8"',
+        brandType: 'RADIUS',
+        connection: 'STD',
       },
     ];
 
@@ -132,5 +142,33 @@ describe('export-data utilities', () => {
 
     expect(lines[0]).toBe('Name,Serial Number,Location');
     expect(lines[1]).toContain('Motor Alpha,SN-001,"Rig ""A"", North"');
+  });
+
+  it('includes spec fields in motor CSV export', () => {
+    const motors: MotorExportRecord[] = [
+      {
+        id: 'm-1',
+        name: 'Motor Alpha',
+        serialNumber: 'SN-001',
+        location: 'Rig 1',
+        status: 'ON_JOB',
+        pumpingHours: 120,
+        dateOut: '2026-04-01',
+        dateIn: null,
+        assembledParts: 3,
+        sapId: 'SAP-001',
+        assetType: 'Motor',
+        size: '9 5/8"',
+        brandType: 'RADIUS',
+        connection: 'STD',
+      },
+    ];
+
+    const table = buildMotorTable(motors, ['serialNumber', 'sapId', 'size', 'brandType', 'connection']);
+    const csv = buildCsv(table.headers, table.rows);
+    const lines = csv.split('\n');
+
+    expect(lines[0]).toBe('Serial Number,SAP ID,Size,Brand / Type,Connection');
+    expect(lines[1]).toContain('SN-001,SAP-001,"9 5/8""",RADIUS,STD');
   });
 });

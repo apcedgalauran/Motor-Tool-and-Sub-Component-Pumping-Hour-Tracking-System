@@ -1,4 +1,4 @@
-import { MOTOR_STATUS_LABELS, SUB_COMPONENT_LABELS } from '@/lib/utils';
+import { getStatusLabel, MOTOR_STATUS_LABELS, SUB_COMPONENT_LABELS } from '@/lib/utils';
 
 export type ExportDataType = 'motors' | 'parts';
 export type ExportFormat = 'CSV' | 'PDF';
@@ -11,7 +11,12 @@ export type MotorExportFieldKey =
   | 'pumpingHours'
   | 'dateOut'
   | 'dateIn'
-  | 'assembledParts';
+  | 'assembledParts'
+  | 'sapId'
+  | 'assetType'
+  | 'size'
+  | 'brandType'
+  | 'connection';
 
 export type PartExportFieldKey =
   | 'type'
@@ -34,6 +39,11 @@ export type MotorExportRecord = {
   dateOut: string | null;
   dateIn: string | null;
   assembledParts: number;
+  sapId?: string | null;
+  assetType?: string | null;
+  size?: string | null;
+  brandType?: string | null;
+  connection?: string | null;
 };
 
 export type PartExportRecord = {
@@ -86,10 +96,7 @@ const MOTOR_FIELD_DEFINITIONS: Record<MotorExportFieldKey, FieldDefinition<Motor
   status: {
     key: 'status',
     label: 'Status',
-    getValue: (record) => {
-      const status = asText(record.status);
-      return MOTOR_STATUS_LABELS[status] || status;
-    },
+    getValue: (record) => getStatusLabel(asText(record.status)),
   },
   pumpingHours: {
     key: 'pumpingHours',
@@ -110,6 +117,31 @@ const MOTOR_FIELD_DEFINITIONS: Record<MotorExportFieldKey, FieldDefinition<Motor
     key: 'assembledParts',
     label: 'Assembled Parts',
     getValue: (record) => asText(record.assembledParts),
+  },
+  sapId: {
+    key: 'sapId',
+    label: 'SAP ID',
+    getValue: (record) => asText(record.sapId),
+  },
+  assetType: {
+    key: 'assetType',
+    label: 'Asset Type',
+    getValue: (record) => asText(record.assetType),
+  },
+  size: {
+    key: 'size',
+    label: 'Size',
+    getValue: (record) => asText(record.size),
+  },
+  brandType: {
+    key: 'brandType',
+    label: 'Brand / Type',
+    getValue: (record) => asText(record.brandType),
+  },
+  connection: {
+    key: 'connection',
+    label: 'Connection',
+    getValue: (record) => asText(record.connection),
   },
 };
 
@@ -294,7 +326,7 @@ export function describeMotorFilters(filters: MotorExportFilters): string[] {
     typeof filters.minHours === 'number' && Number.isFinite(filters.minHours) ? filters.minHours : null;
 
   if (statuses.length > 0) {
-    const labels = statuses.map((status) => MOTOR_STATUS_LABELS[status] || status);
+    const labels = statuses.map((status) => getStatusLabel(status));
     descriptions.push(`Status: ${labels.join(', ')}`);
   } else {
     descriptions.push('Status: All');

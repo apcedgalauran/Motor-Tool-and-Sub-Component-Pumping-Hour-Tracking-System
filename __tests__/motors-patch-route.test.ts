@@ -14,9 +14,6 @@ vi.mock('@/lib/prisma', () => ({
       findUnique: vi.fn(),
       findFirst: vi.fn(),
     },
-    customStatus: {
-      findUnique: vi.fn(),
-    },
     $transaction: vi.fn(),
   },
 }));
@@ -43,10 +40,13 @@ describe('PATCH /api/motors/[id]', () => {
     location: 'Abu Dhabi',
     dateOut: new Date('2026-04-01T00:00:00.000Z'),
     dateIn: null,
-    status: 'ON_LOCATION',
-    customStatusId: null,
+    status: 'IDLE',
     pumpingHours: 120,
-    customStatus: null,
+    sapId: null,
+    assetType: null,
+    size: null,
+    brandType: null,
+    connection: null,
   };
 
   beforeEach(() => {
@@ -55,13 +55,11 @@ describe('PATCH /api/motors/[id]', () => {
     vi.mocked(auth).mockResolvedValue({ user: { id: 'user-1' } } as never);
     vi.mocked(prisma.motor.findUnique).mockResolvedValue(existingMotor as never);
     vi.mocked(prisma.motor.findFirst).mockResolvedValue(null as never);
-    vi.mocked(prisma.customStatus.findUnique).mockResolvedValue(null as never);
 
     tx.motor.update.mockResolvedValue({
       ...existingMotor,
       location: 'Dubai',
-      status: 'IN_BASE',
-      customStatus: null,
+      status: 'RFF',
     });
     tx.motorEditLog.create.mockResolvedValue({ id: 'log-1' });
 
@@ -80,7 +78,7 @@ describe('PATCH /api/motors/[id]', () => {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         location: 'Dubai',
-        status: 'IN_BASE',
+        status: 'RFF',
       }),
     });
 
@@ -91,7 +89,7 @@ describe('PATCH /api/motors/[id]', () => {
     expect(response.status).toBe(200);
     const payload = await response.json();
     expect(payload.motor.location).toBe('Dubai');
-    expect(payload.motor.status).toBe('IN_BASE');
+    expect(payload.motor.status).toBe('RFF');
 
     expect(tx.motorEditLog.create).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -100,7 +98,7 @@ describe('PATCH /api/motors/[id]', () => {
           userId: 'user-1',
           changedFields: expect.objectContaining({
             location: { previous: 'Abu Dhabi', next: 'Dubai' },
-            status: { previous: 'ON_LOCATION', next: 'IN_BASE' },
+            status: { previous: 'IDLE', next: 'RFF' },
           }),
         }),
       })
@@ -150,8 +148,7 @@ describe('PATCH /api/motors/[id]', () => {
       ...existingMotor,
       name: 'Motor 200',
       dateIn: new Date('2026-04-10T00:00:00.000Z'),
-      status: 'FOR_MAINTENANCE',
-      customStatus: null,
+      status: 'WOP',
     });
 
     const request = new Request('http://localhost/api/motors/motor-1', {
@@ -160,7 +157,7 @@ describe('PATCH /api/motors/[id]', () => {
       body: JSON.stringify({
         name: 'Motor 200',
         dateIn: '2026-04-10',
-        status: 'FOR_MAINTENANCE',
+        status: 'WOP',
       }),
     });
 
@@ -176,7 +173,50 @@ describe('PATCH /api/motors/[id]', () => {
           changedFields: expect.objectContaining({
             name: { previous: 'Motor 100', next: 'Motor 200' },
             dateIn: { previous: null, next: '2026-04-10' },
-            status: { previous: 'ON_LOCATION', next: 'FOR_MAINTENANCE' },
+            status: { previous: 'IDLE', next: 'WOP' },
+          }),
+        }),
+      })
+    );
+  });
+
+  it('updates motor spec fields (sapId, assetType, size, brandType, connection)', async () => {
+    tx.motor.update.mockResolvedValue({
+      ...existingMotor,
+      sapId: 'SAP-123',
+      assetType: 'Motor',
+      size: '9 5/8"',
+      brandType: 'RADIUS',
+      connection: 'STD',
+    });
+
+    const request = new Request('http://localhost/api/motors/motor-1', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        sapId: 'SAP-123',
+        assetType: 'Motor',
+        size: '9 5/8"',
+        brandType: 'RADIUS',
+        connection: 'STD',
+      }),
+    });
+
+    const response = await PATCH(request as never, {
+      params: Promise.resolve({ id: 'motor-1' }),
+    });
+
+    expect(response.status).toBe(200);
+
+    expect(tx.motorEditLog.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          changedFields: expect.objectContaining({
+            sapId: { previous: null, next: 'SAP-123' },
+            assetType: { previous: null, next: 'Motor' },
+            size: { previous: null, next: '9 5/8"' },
+            brandType: { previous: null, next: 'RADIUS' },
+            connection: { previous: null, next: 'STD' },
           }),
         }),
       })

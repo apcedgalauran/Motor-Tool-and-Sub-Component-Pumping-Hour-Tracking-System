@@ -1,24 +1,18 @@
 import { getMotors } from '@/actions/motor.actions';
-import { getCustomStatuses } from '@/actions/custom-status.actions';
-import { MotorCard } from '@/components/MotorCard';
-import {
-  STANDARD_MOTOR_STATUSES,
-  MOTOR_STATUS_LABELS,
-  MOTOR_STATUS_COLORS,
-} from '@/lib/utils';
+import { SerialNumberSearch } from '@/components/SerialNumberSearch';
+import { ASSET_STATUS_META, type AssetStatus } from '@/lib/asset-status';
 import Link from 'next/link';
 
 export const dynamic = 'force-dynamic';
 
 export default async function DashboardPage() {
-  const [motors, customStatuses] = await Promise.all([
-    getMotors(),
-    getCustomStatuses(),
-  ]);
+  const motors = await getMotors();
 
   const totalMotors = motors.length;
-  const onLocationMotors = motors.filter((m) => m.status === 'ON_LOCATION').length;
+  const onJobMotors = motors.filter((m) => m.status === 'ON_JOB').length;
   const totalParts = motors.reduce((sum, m) => sum + m._count.assemblies, 0);
+
+  const statusEntries = Object.entries(ASSET_STATUS_META) as [AssetStatus, typeof ASSET_STATUS_META[AssetStatus]][];
 
   return (
     <div>
@@ -36,68 +30,54 @@ export default async function DashboardPage() {
         </Link>
       </div>
 
-      {/* Stats grid — 3 cards (Total Hours removed) */}
+      {/* Stats grid */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6 animate-fade-in stagger-1">
         <StatCard label="Total Motors" value={totalMotors.toString()} />
-        <StatCard label="On Location" value={onLocationMotors.toString()} />
+        <StatCard label="On Job" value={onJobMotors.toString()} />
         <StatCard label="Assembled Parts" value={totalParts.toString()} />
       </div>
 
       {/* Status Legend */}
       <div className="bg-[var(--card)] border border-[var(--border)] rounded-xl p-4 mb-8 animate-fade-in stagger-2">
         <p className="text-[10px] text-[#333333] uppercase tracking-wider mb-3 font-medium">Status Legend</p>
-        <div className="flex flex-wrap gap-x-5 gap-y-2">
-          {STANDARD_MOTOR_STATUSES.map((s) => (
-            <div key={s} className="flex items-center gap-2">
+        <div className="flex flex-wrap gap-x-4 gap-y-2">
+          {statusEntries.map(([statusKey, meta]) => (
+            <div key={statusKey} className="flex items-center gap-1.5">
               <span
-                className="inline-block w-2.5 h-2.5 rounded-full flex-shrink-0"
-                style={{ backgroundColor: MOTOR_STATUS_COLORS[s] }}
-              />
-              <span className="text-xs text-[#333333]">{MOTOR_STATUS_LABELS[s]}</span>
-            </div>
-          ))}
-          {customStatuses.map((cs) => (
-            <div key={cs.id} className="flex items-center gap-2">
-              <span
-                className="inline-block w-2.5 h-2.5 rounded-full flex-shrink-0"
-                style={{ backgroundColor: cs.color }}
-              />
-              <span className="text-xs text-[#333333]">{cs.label}</span>
+                className="inline-flex items-center justify-center w-5 h-5 rounded text-[10px] font-bold leading-none flex-shrink-0"
+                style={{ backgroundColor: meta.color, color: meta.textColor }}
+              >
+                {meta.code}
+              </span>
+              <span className="text-xs text-[#333333]">{meta.label}</span>
             </div>
           ))}
         </div>
       </div>
 
-      {/* Motors Grid */}
-      {motors.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {motors.map((motor, i) => (
-            <div key={motor.id} className={`animate-fade-in stagger-${Math.min(i + 1, 6)}`}>
-              <MotorCard
-                id={motor.id}
-                name={motor.name}
-                serialNumber={motor.serialNumber}
-                status={motor.status}
-                statusColor={motor.customStatus?.color}
-                location={motor.location}
-                pumpingHours={motor.pumpingHours}
-                assembledCount={motor._count.assemblies}
-              />
-            </div>
-          ))}
-        </div>
-      ) : (
-        <div className="text-center py-20 animate-fade-in">
-          <div className="text-4xl mb-4 opacity-30">⚙</div>
-          <p className="text-[#333333] text-sm mb-4">No motors yet</p>
+      {/* Search */}
+      <div className="animate-fade-in stagger-3">
+        <SerialNumberSearch />
+
+        {/* Browse all links */}
+        <div className="flex items-center gap-4 mt-4">
           <Link
-            href="/motors/new"
-            className="inline-block bg-[#9E9EB0]/10 text-[#9E9EB0] border border-[#9E9EB0]/30 text-sm px-4 py-3 rounded-lg hover:bg-[#9E9EB0]/20 transition-colors"
+            href="/motors"
+            id="dashboard-browse-motors"
+            className="text-xs text-[#9E9EB0] hover:text-[#121212] transition-colors flex items-center gap-1"
           >
-            Add your first motor
+            <span className="text-[10px]">⚙</span> Browse all motors
+          </Link>
+          <span className="text-[#ddd] select-none">·</span>
+          <Link
+            href="/sub-components"
+            id="dashboard-browse-parts"
+            className="text-xs text-[#9E9EB0] hover:text-[#121212] transition-colors flex items-center gap-1"
+          >
+            <span className="text-[10px]">◎</span> Browse all parts
           </Link>
         </div>
-      )}
+      </div>
     </div>
   );
 }

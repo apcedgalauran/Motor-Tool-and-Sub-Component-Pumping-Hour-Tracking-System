@@ -1,10 +1,7 @@
 'use client';
 
-import {
-  EDITABLE_SUB_COMPONENT_STATUS_LABELS,
-  toEditableSubComponentStatus,
-  type EditableSubComponentStatus,
-} from '@/lib/subcomponent-shared';
+import { type AssetStatus, ASSET_STATUS_META } from '@/lib/asset-status';
+import { AssetStatusBadge, AssetStatusSelector } from '@/components/asset-status-selector';
 import { SUB_COMPONENT_LABELS, formatDate, formatHours } from '@/lib/utils';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -42,13 +39,23 @@ type SubComponentHourLogRecord = {
   } | null;
 };
 
+type AssetCategory = 'STATOR' | 'ROTOR' | 'MOTOR_SLEEVE' | 'OTHER';
+
+const TOP_LEVEL_CATEGORIES: AssetCategory[] = ['STATOR', 'ROTOR', 'MOTOR_SLEEVE'];
+
 type SubComponentDetail = {
   id: string;
   type: string;
   serialNumber: string;
   status: string;
+  availabilityStatus: string;
+  assetCategory: AssetCategory;
   notes: string | null;
   cumulativeHours: number;
+  sapId: string | null;
+  size: string | null;
+  configuration: string | null;
+  brand: string | null;
   assemblies: AssemblyRecord[];
   subComponentHourLogs: SubComponentHourLogRecord[];
 };
@@ -64,12 +71,19 @@ export function SubComponentDetailClient({ initialSubComponent }: { initialSubCo
 
   const [flash, setFlash] = useState<FlashMessage | null>(null);
 
+  const isTopLevel = TOP_LEVEL_CATEGORIES.includes(subComponent.assetCategory);
+
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [editType, setEditType] = useState(initialSubComponent.type);
   const [editSerialNumber, setEditSerialNumber] = useState(initialSubComponent.serialNumber);
-  const [editStatus, setEditStatus] = useState<EditableSubComponentStatus>(
-    toEditableSubComponentStatus(initialSubComponent.status)
+  const [editStatus, setEditStatus] = useState<AssetStatus>(
+    (ASSET_STATUS_META[initialSubComponent.status as AssetStatus] ? initialSubComponent.status : 'IDLE') as AssetStatus
   );
+  const [editNotes, setEditNotes] = useState(initialSubComponent.notes ?? '');
+  const [editSapId, setEditSapId] = useState(initialSubComponent.sapId ?? '');
+  const [editSize, setEditSize] = useState(initialSubComponent.size ?? '');
+  const [editConfiguration, setEditConfiguration] = useState(initialSubComponent.configuration ?? '');
+  const [editBrand, setEditBrand] = useState(initialSubComponent.brand ?? '');
   const [isSavingEdit, setIsSavingEdit] = useState(false);
 
   const [isHoursOpen, setIsHoursOpen] = useState(false);
@@ -113,14 +127,7 @@ export function SubComponentDetailClient({ initialSubComponent }: { initialSubCo
   }, [isEditOpen, isHoursOpen]);
 
   const typeLabel = SUB_COMPONENT_LABELS[subComponent.type as keyof typeof SUB_COMPONENT_LABELS] || subComponent.type;
-  const componentStatus = toEditableSubComponentStatus(subComponent.status);
   const successBadgeClass = 'text-emerald-700 bg-emerald-500/10 border-emerald-500/30';
-
-  const componentStatusStyleMap: Record<EditableSubComponentStatus, string> = {
-    ACTIVE: successBadgeClass,
-    IN_MAINTENANCE: 'text-orange-700 bg-orange-500/10 border-orange-500/30',
-    RETIRED: 'text-red-600 bg-red-500/10 border-red-500/30',
-  };
 
   const typeOptions = useMemo(() => {
     const baseOptions = Object.entries(SUB_COMPONENT_LABELS);
@@ -134,7 +141,14 @@ export function SubComponentDetailClient({ initialSubComponent }: { initialSubCo
   function openEdit() {
     setEditType(subComponent.type);
     setEditSerialNumber(subComponent.serialNumber);
-    setEditStatus(toEditableSubComponentStatus(subComponent.status));
+    setEditStatus(
+      (ASSET_STATUS_META[subComponent.status as AssetStatus] ? subComponent.status : 'IDLE') as AssetStatus
+    );
+    setEditNotes(subComponent.notes ?? '');
+    setEditSapId(subComponent.sapId ?? '');
+    setEditSize(subComponent.size ?? '');
+    setEditConfiguration(subComponent.configuration ?? '');
+    setEditBrand(subComponent.brand ?? '');
     setIsEditOpen(true);
   }
 
@@ -157,14 +171,23 @@ export function SubComponentDetailClient({ initialSubComponent }: { initialSubCo
 
     setIsSavingEdit(true);
     try {
+      const body: Record<string, unknown> = {
+        type: editType,
+        serialNumber: serial,
+        status: editStatus,
+        notes: editNotes.trim() || null,
+      };
+      if (isTopLevel) {
+        body.sapId = editSapId.trim() || null;
+        body.size = editSize.trim() || null;
+        body.configuration = editConfiguration.trim() || null;
+        body.brand = editBrand.trim() || null;
+      }
+
       const response = await fetch(`/api/sub-components/${subComponent.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          type: editType,
-          serialNumber: serial,
-          status: editStatus,
-        }),
+        body: JSON.stringify(body),
       });
 
       const payload = await response.json().catch(() => ({}));
@@ -178,6 +201,11 @@ export function SubComponentDetailClient({ initialSubComponent }: { initialSubCo
         type: updated.type ?? current.type,
         serialNumber: updated.serialNumber ?? current.serialNumber,
         status: updated.status ?? current.status,
+        notes: updated.notes !== undefined ? updated.notes : current.notes,
+        sapId: updated.sapId !== undefined ? updated.sapId : current.sapId,
+        size: updated.size !== undefined ? updated.size : current.size,
+        configuration: updated.configuration !== undefined ? updated.configuration : current.configuration,
+        brand: updated.brand !== undefined ? updated.brand : current.brand,
       }));
 
       setIsEditOpen(false);
@@ -266,22 +294,20 @@ export function SubComponentDetailClient({ initialSubComponent }: { initialSubCo
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2 md:gap-3 mb-1">
               <h1 className="text-2xl font-bold text-[#121212] tracking-tight break-words">{typeLabel}</h1>
+              {/* Availability status pill — read-only, system-managed */}
               <span
                 className={`text-[10px] uppercase tracking-wider px-2 py-1 rounded-md border font-semibold ${
-                  isInstalled
+                  subComponent.availabilityStatus === 'INSTALLED'
                     ? successBadgeClass
                     : 'text-[#333333] bg-[#A3A3A3]/10 border-[#A3A3A3]/30'
                 }`}
               >
-                {isInstalled ? 'Installed' : 'Available'}
+                {subComponent.availabilityStatus === 'INSTALLED' ? 'Installed' : 'Available'}
               </span>
-              <span
-                className={`text-[10px] uppercase tracking-wider px-2 py-1 rounded-md border font-semibold ${
-                  componentStatusStyleMap[componentStatus]
-                }`}
-              >
-                {EDITABLE_SUB_COMPONENT_STATUS_LABELS[componentStatus]}
-              </span>
+              {/* AssetStatus badge with letter-code pill + tooltip */}
+              {ASSET_STATUS_META[subComponent.status as AssetStatus] && (
+                <AssetStatusBadge status={subComponent.status as AssetStatus} />
+              )}
             </div>
             <p className="text-sm text-[#333333] font-mono break-all">{subComponent.serialNumber}</p>
             {subComponent.notes && <p className="text-xs text-[#333333] mt-1">{subComponent.notes}</p>}
@@ -322,6 +348,31 @@ export function SubComponentDetailClient({ initialSubComponent }: { initialSubCo
             }`}
           >
             {flash.message}
+          </div>
+        )}
+
+        {/* Asset fields block — STATOR / ROTOR / MOTOR_SLEEVE only */}
+        {isTopLevel && (
+          <div className="bg-[var(--card)] border border-[var(--border)] rounded-xl p-4 md:p-5 mb-6 animate-fade-in">
+            <h3 className="text-xs font-semibold text-[#333333] uppercase tracking-wider mb-3">Asset Details</h3>
+            <dl className="grid grid-cols-2 sm:grid-cols-4 gap-x-6 gap-y-3 text-sm">
+              <div>
+                <dt className="text-[10px] uppercase tracking-wider text-[#333333] mb-0.5">SAP ID</dt>
+                <dd className="font-mono text-[#121212]">{subComponent.sapId || <span className="text-[#A3A3A3]">—</span>}</dd>
+              </div>
+              <div>
+                <dt className="text-[10px] uppercase tracking-wider text-[#333333] mb-0.5">Size</dt>
+                <dd className="text-[#121212]">{subComponent.size || <span className="text-[#A3A3A3]">—</span>}</dd>
+              </div>
+              <div>
+                <dt className="text-[10px] uppercase tracking-wider text-[#333333] mb-0.5">Brand / Type</dt>
+                <dd className="text-[#121212]">{subComponent.brand || <span className="text-[#A3A3A3]">—</span>}</dd>
+              </div>
+              <div>
+                <dt className="text-[10px] uppercase tracking-wider text-[#333333] mb-0.5">Configuration</dt>
+                <dd className="text-[#121212]">{subComponent.configuration || <span className="text-[#A3A3A3]">—</span>}</dd>
+              </div>
+            </dl>
           </div>
         )}
 
@@ -469,7 +520,7 @@ export function SubComponentDetailClient({ initialSubComponent }: { initialSubCo
             <h2 id="edit-subcomponent-title" className="text-lg font-bold font-mono tracking-tight text-[#121212]">
               Edit Sub-Component
             </h2>
-            <p className="text-xs text-[#333333] mt-1 mb-4">Update type, serial number, and current status.</p>
+            <p className="text-xs text-[#333333] mt-1 mb-4">Update details and current status.</p>
 
             <form onSubmit={handleSaveEdit} className="space-y-4">
               <div>
@@ -496,19 +547,68 @@ export function SubComponentDetailClient({ initialSubComponent }: { initialSubCo
                 />
               </div>
 
+              <AssetStatusSelector
+                value={editStatus}
+                onChange={setEditStatus}
+                label="Status *"
+              />
+
               <div>
-                <label className={fieldLabelClass}>Status *</label>
-                <select
-                  value={editStatus}
-                  onChange={(event) => setEditStatus(event.target.value as EditableSubComponentStatus)}
-                  required
-                  className={fieldControlClass}
-                >
-                  {Object.entries(EDITABLE_SUB_COMPONENT_STATUS_LABELS).map(([value, label]) => (
-                    <option key={value} value={value}>{label}</option>
-                  ))}
-                </select>
+                <label className={fieldLabelClass}>Notes</label>
+                <textarea
+                  value={editNotes}
+                  onChange={(event) => setEditNotes(event.target.value)}
+                  rows={3}
+                  className={textAreaClass}
+                />
               </div>
+
+              {/* Asset-specific fields — STATOR / ROTOR / MOTOR_SLEEVE only */}
+              {isTopLevel && (
+                <>
+                  <div className="border-t border-[var(--border)] pt-4">
+                    <p className="text-[10px] uppercase tracking-wider text-[#333333] mb-3">Asset Details</p>
+                    <div className="space-y-3">
+                      <div>
+                        <label className={fieldLabelClass}>SAP ID</label>
+                        <input
+                          value={editSapId}
+                          onChange={(event) => setEditSapId(event.target.value)}
+                          placeholder="e.g. 1234567890"
+                          className={fieldControlClass}
+                        />
+                      </div>
+                      <div>
+                        <label className={fieldLabelClass}>Size</label>
+                        <input
+                          value={editSize}
+                          onChange={(event) => setEditSize(event.target.value)}
+                          placeholder='e.g. 9 5/8"'
+                          className={fieldControlClass}
+                        />
+                      </div>
+                      <div>
+                        <label className={fieldLabelClass}>Brand / Type</label>
+                        <input
+                          value={editBrand}
+                          onChange={(event) => setEditBrand(event.target.value)}
+                          placeholder="Brand or type label"
+                          className={fieldControlClass}
+                        />
+                      </div>
+                      <div>
+                        <label className={fieldLabelClass}>Configuration</label>
+                        <input
+                          value={editConfiguration}
+                          onChange={(event) => setEditConfiguration(event.target.value)}
+                          placeholder="Asset configuration"
+                          className={fieldControlClass}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </>
+              )}
 
               <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 pt-1">
                 <button type="button" onClick={closeEdit} className={modalSecondaryButtonClass}>

@@ -9,7 +9,10 @@ import { ExportDataModal } from './ExportDataModal';
 const navItems = [
   { href: '/', label: 'Dashboard', icon: '◈' },
   { href: '/motors', label: 'Motors', icon: '⚙' },
-  { href: '/sub-components', label: 'Sub-Components', icon: '◎' },
+  { href: '/stators', label: 'Stators', icon: '◎' },
+  { href: '/rotors', label: 'Rotors', icon: '◎' },
+  { href: '/motor-sleeves', label: 'Motor Sleeves', icon: '◎' },
+  { href: '/sub-components', label: 'Other Parts', icon: '◎' },
 ];
 
 export function Sidebar() {

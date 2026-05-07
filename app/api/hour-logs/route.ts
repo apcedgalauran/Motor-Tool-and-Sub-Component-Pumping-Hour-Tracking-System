@@ -1,7 +1,9 @@
 export const runtime = 'nodejs';
 
 import { auth } from '@/auth';
+import { TERMINAL_STATUSES } from '@/lib/asset-status';
 import { logPumpingHoursCascade, logSubComponentHoursIsolated } from '@/lib/hour-logs';
+import { prisma } from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
 import { NextRequest, NextResponse } from 'next/server';
 
@@ -30,6 +32,7 @@ function parseError(error: unknown): { status: number; message: string } {
       message.includes('required')
       || message.includes('positive number')
       || message.includes('installed in a motor')
+      || message.includes('Cannot log hours on a part with status')
     ) {
       return { status: 400, message };
     }
@@ -61,6 +64,28 @@ export async function POST(request: NextRequest) {
     const providedMotorId = typeof body.motorId === 'string' ? body.motorId.trim() : '';
 
     if (subComponentId) {
+      // §10.8: Block hours logging on terminal-status parts (LOST_IN_HOLE, SCRAP).
+      // QUARANTINE is excluded here per PRD — only assembly is blocked, not hour logging.
+      const subComponent = await prisma.subComponent.findUnique({
+        where: { id: subComponentId },
+        select: { id: true, status: true },
+      });
+
+      if (!subComponent) {
+        return NextResponse.json({ error: 'Sub-component not found.' }, { status: 404 });
+      }
+
+      const terminalBlockList = TERMINAL_STATUSES.filter(
+        (s) => s === 'LOST_IN_HOLE' || s === 'SCRAP'
+      );
+
+      if (subComponent.status && terminalBlockList.includes(subComponent.status as typeof terminalBlockList[number])) {
+        return NextResponse.json(
+          { error: `Cannot log hours on a part with status ${subComponent.status}.` },
+          { status: 400 }
+        );
+      }
+
       const result = await logSubComponentHoursIsolated({
         subComponentId,
         userId: session.user.id,

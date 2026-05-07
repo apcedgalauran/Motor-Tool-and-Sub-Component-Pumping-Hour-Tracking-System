@@ -2,26 +2,46 @@
 
 import { useState } from 'react';
 import { logPumpingHours } from '@/actions/hours.actions';
+import { formatHours, SUB_COMPONENT_LABELS } from '@/lib/utils';
+
+type AssembledSubComponent = {
+  id: string;
+  type: string;
+  serialNumber: string;
+  cumulativeHours: number;
+};
 
 type HoursFormProps = {
   motorId: string;
   motorName: string;
-  currentHours: number;
+  /** Sub-components currently assembled on this motor, used to display updated totals on success. */
+  assembledSubComponents?: AssembledSubComponent[];
 };
 
-export function HoursForm({ motorId, motorName }: HoursFormProps) {
+type SuccessState = {
+  hoursAdded: number;
+  rigName: string;
+  wellNumber: string;
+  updatedComponents: Array<{
+    type: string;
+    serialNumber: string;
+    newCumulativeHours: number;
+  }>;
+};
+
+export function HoursForm({ motorId, motorName, assembledSubComponents = [] }: HoursFormProps) {
   const [hours, setHours] = useState('');
   const [notes, setNotes] = useState('');
   const [rigName, setRigName] = useState('');
   const [wellNumber, setWellNumber] = useState('');
   const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<{ motor: { pumpingHours: number }; subComponentsUpdated: number } | null>(null);
+  const [success, setSuccess] = useState<SuccessState | null>(null);
   const [error, setError] = useState('');
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError('');
-    setResult(null);
+    setSuccess(null);
 
     const hoursNum = parseFloat(hours);
     if (isNaN(hoursNum) || hoursNum <= 0) {
@@ -38,10 +58,30 @@ export function HoursForm({ motorId, motorName }: HoursFormProps) {
       return;
     }
 
+    // Capture form values before clearing for success display
+    const submittedHours = hoursNum;
+    const submittedRig = rigName.trim();
+    const submittedWell = wellNumber.trim();
+
     setLoading(true);
     try {
-      const res = await logPumpingHours(motorId, hoursNum, rigName, wellNumber, notes || undefined);
-      setResult(res);
+      await logPumpingHours(motorId, submittedHours, submittedRig, submittedWell, notes || undefined);
+
+      // Compute per-component new totals client-side:
+      // The cascade always adds the same hoursAdded to every currently assembled component.
+      const updatedComponents = assembledSubComponents.map((sc) => ({
+        type: sc.type,
+        serialNumber: sc.serialNumber,
+        newCumulativeHours: sc.cumulativeHours + submittedHours,
+      }));
+
+      setSuccess({
+        hoursAdded: submittedHours,
+        rigName: submittedRig,
+        wellNumber: submittedWell,
+        updatedComponents,
+      });
+
       setHours('');
       setNotes('');
       setRigName('');
@@ -132,15 +172,41 @@ export function HoursForm({ motorId, motorName }: HoursFormProps) {
         </div>
       )}
 
-      {result && (
-        <div className="mt-3 p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-lg text-xs text-emerald-600">
-          <p className="font-semibold">Hours logged successfully</p>
-          <p className="mt-1 text-emerald-600/80">
-            {motorName}: {result.motor.pumpingHours.toFixed(1)} hrs total
-          </p>
-          <p className="text-emerald-600/80">
-            {result.subComponentsUpdated} sub-component{result.subComponentsUpdated !== 1 ? 's' : ''} updated
-          </p>
+      {success && (
+        <div className="mt-3 p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-lg text-xs text-emerald-700 space-y-2">
+          <p className="font-semibold text-emerald-800">Hours logged — {motorName}</p>
+
+          <div className="grid grid-cols-2 gap-x-3 gap-y-1">
+            <span className="text-emerald-700/70">Hours added</span>
+            <span className="font-semibold">{formatHours(success.hoursAdded)} hrs</span>
+            <span className="text-emerald-700/70">Rig</span>
+            <span className="font-semibold">{success.rigName}</span>
+            <span className="text-emerald-700/70">Well</span>
+            <span className="font-semibold">{success.wellNumber}</span>
+          </div>
+
+          {success.updatedComponents.length > 0 ? (
+            <div className="pt-1 border-t border-emerald-500/20 space-y-1">
+              <p className="text-[10px] uppercase tracking-wider text-emerald-700/60 mb-1">
+                Sub-components updated
+              </p>
+              {success.updatedComponents.map((sc) => (
+                <div key={sc.serialNumber} className="flex items-center justify-between gap-2">
+                  <div className="min-w-0">
+                    <span className="font-medium">
+                      {SUB_COMPONENT_LABELS[sc.type as keyof typeof SUB_COMPONENT_LABELS] || sc.type}
+                    </span>
+                    <span className="text-emerald-700/60 font-mono ml-1.5">{sc.serialNumber}</span>
+                  </div>
+                  <span className="font-semibold shrink-0">{formatHours(sc.newCumulativeHours)} hrs</span>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-emerald-700/70 pt-1 border-t border-emerald-500/20">
+              No sub-components were assembled at the time of logging.
+            </p>
+          )}
         </div>
       )}
     </div>

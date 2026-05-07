@@ -6,6 +6,7 @@ import {
   hasMotorChangedFields,
   type MotorEditableSnapshot,
 } from '@/lib/motor-edit-log';
+import { type AssetStatus, ASSET_STATUS_META } from '@/lib/asset-status';
 import { prisma } from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
 import { revalidatePath } from 'next/cache';
@@ -18,8 +19,16 @@ type PatchMotorBody = {
   dateOut?: string | null;
   dateIn?: string | null;
   status?: string;
-  customStatusId?: string | null;
+  sapId?: string | null;
+  assetType?: string | null;
+  size?: string | null;
+  brandType?: string | null;
+  connection?: string | null;
 };
+
+const VALID_ASSET_STATUSES = new Set<string>(
+  Object.keys(ASSET_STATUS_META)
+);
 
 function parseDateInput(value: string | null, fieldLabel: string): Date | null {
   if (value === null) return null;
@@ -45,7 +54,7 @@ function formatBadRequest(error: unknown): string | null {
     || error.message.includes('No valid fields')
     || error.message.includes('No changes detected')
     || error.message.includes('already exists')
-    || error.message.includes('Invalid custom status')
+    || error.message.includes('Invalid status value')
   ) {
     return error.message;
   }
@@ -69,7 +78,6 @@ export async function PATCH(
 
     const existingMotor = await prisma.motor.findUnique({
       where: { id },
-      include: { customStatus: true },
     });
 
     if (!existingMotor) {
@@ -85,7 +93,11 @@ export async function PATCH(
     let nextDateOut = existingMotor.dateOut;
     let nextDateIn = existingMotor.dateIn;
     let nextStatus = existingMotor.status;
-    let nextCustomStatusId = existingMotor.customStatusId;
+    let nextSapId = existingMotor.sapId;
+    let nextAssetType = existingMotor.assetType;
+    let nextSize = existingMotor.size;
+    let nextBrandType = existingMotor.brandType;
+    let nextConnection = existingMotor.connection;
 
     if (body.name !== undefined) {
       if (typeof body.name !== 'string') throw new Error('Motor Name/ID must be a string.');
@@ -143,22 +155,63 @@ export async function PATCH(
     if (body.status !== undefined) {
       if (typeof body.status !== 'string') throw new Error('Status must be a string.');
       const trimmed = body.status.trim();
-      if (!trimmed) throw new Error('Status is required.');
-
-      touchedAnyField = true;
-      nextStatus = trimmed;
-      updateData.status = trimmed;
-    }
-
-    if (body.customStatusId !== undefined) {
-      if (body.customStatusId !== null && typeof body.customStatusId !== 'string') {
-        throw new Error('Custom status id must be a string.');
+      if (!VALID_ASSET_STATUSES.has(trimmed)) {
+        return NextResponse.json({ error: 'Invalid status value.' }, { status: 400 });
       }
 
       touchedAnyField = true;
-      const trimmed = body.customStatusId?.trim() ?? '';
-      nextCustomStatusId = trimmed || null;
-      updateData.customStatusId = nextCustomStatusId;
+      nextStatus = trimmed as AssetStatus;
+      updateData.status = trimmed as AssetStatus;
+    }
+
+    if (body.sapId !== undefined) {
+      if (body.sapId !== null && typeof body.sapId !== 'string') {
+        throw new Error('SAP ID must be a string.');
+      }
+      touchedAnyField = true;
+      const trimmed = body.sapId?.trim() ?? '';
+      nextSapId = trimmed || null;
+      updateData.sapId = nextSapId;
+    }
+
+    if (body.assetType !== undefined) {
+      if (body.assetType !== null && typeof body.assetType !== 'string') {
+        throw new Error('Asset Type must be a string.');
+      }
+      touchedAnyField = true;
+      const trimmed = body.assetType?.trim() ?? '';
+      nextAssetType = trimmed || null;
+      updateData.assetType = nextAssetType;
+    }
+
+    if (body.size !== undefined) {
+      if (body.size !== null && typeof body.size !== 'string') {
+        throw new Error('Size must be a string.');
+      }
+      touchedAnyField = true;
+      const trimmed = body.size?.trim() ?? '';
+      nextSize = trimmed || null;
+      updateData.size = nextSize;
+    }
+
+    if (body.brandType !== undefined) {
+      if (body.brandType !== null && typeof body.brandType !== 'string') {
+        throw new Error('Brand/Type must be a string.');
+      }
+      touchedAnyField = true;
+      const trimmed = body.brandType?.trim() ?? '';
+      nextBrandType = trimmed || null;
+      updateData.brandType = nextBrandType;
+    }
+
+    if (body.connection !== undefined) {
+      if (body.connection !== null && typeof body.connection !== 'string') {
+        throw new Error('Connection must be a string.');
+      }
+      touchedAnyField = true;
+      const trimmed = body.connection?.trim() ?? '';
+      nextConnection = trimmed || null;
+      updateData.connection = nextConnection;
     }
 
     if (!touchedAnyField) {
@@ -178,16 +231,6 @@ export async function PATCH(
       }
     }
 
-    if (nextCustomStatusId) {
-      const customStatus = await prisma.customStatus.findUnique({
-        where: { id: nextCustomStatusId },
-      });
-
-      if (!customStatus) {
-        throw new Error('Invalid custom status selected.');
-      }
-    }
-
     const previousSnapshot: MotorEditableSnapshot = {
       name: existingMotor.name,
       serialNumber: existingMotor.serialNumber,
@@ -195,6 +238,11 @@ export async function PATCH(
       dateOut: existingMotor.dateOut,
       dateIn: existingMotor.dateIn,
       status: existingMotor.status,
+      sapId: existingMotor.sapId,
+      assetType: existingMotor.assetType,
+      size: existingMotor.size,
+      brandType: existingMotor.brandType,
+      connection: existingMotor.connection,
     };
 
     const nextSnapshot: MotorEditableSnapshot = {
@@ -204,6 +252,11 @@ export async function PATCH(
       dateOut: nextDateOut,
       dateIn: nextDateIn,
       status: nextStatus,
+      sapId: nextSapId,
+      assetType: nextAssetType,
+      size: nextSize,
+      brandType: nextBrandType,
+      connection: nextConnection,
     };
 
     const changedFields = buildMotorChangedFields(previousSnapshot, nextSnapshot);
@@ -216,7 +269,6 @@ export async function PATCH(
       const updated = await tx.motor.update({
         where: { id },
         data: updateData,
-        include: { customStatus: true },
       });
 
       await tx.motorEditLog.create({

@@ -14,18 +14,23 @@ model Motor {
   location        String?
   dateOut         DateTime?
   dateIn          DateTime?
-  status          String        @default("ON_LOCATION")
-  customStatusId  String?
+  status          String        @default("IDLE")
   pumpingHours    Float         @default(0)
+  sapId           String?
+  assetType       String?
+  size            String?
+  brandType       String?
+  connection      String?
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
 
-  customStatus CustomStatus? @relation(fields: [customStatusId], references: [id])
   assemblies            Assembly[]
   hourLogs              HourLog[]
   editLogs              MotorEditLog[]
   subComponentHourLogs  SubComponentHourLog[]
   files                 MotorFile[]
+
+  @@index([status])
 }
 
 model CustomStatus {
@@ -34,8 +39,6 @@ model CustomStatus {
   color       String
   isPermanent Boolean  @default(true)
   createdAt   DateTime @default(now())
-
-  motors Motor[]
 }
 
 model User {
@@ -51,17 +54,26 @@ model User {
 }
 
 model SubComponent {
-  id              String           @id @default(cuid())
-  type            String
-  serialNumber    String           @unique
-  cumulativeHours Float            @default(0)
-  status          String           @default("AVAILABLE")
-  notes           String?
-  createdAt       DateTime         @default(now())
-  updatedAt       DateTime         @updatedAt
+  id                 String           @id @default(cuid())
+  type               String
+  serialNumber       String           @unique
+  cumulativeHours    Float            @default(0)
+  status             String           @default("IDLE")
+  availabilityStatus String           @default("AVAILABLE")
+  assetCategory      String           @default("OTHER")
+  sapId              String?
+  size               String?
+  configuration      String?
+  brand              String?
+  notes              String?
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
 
   assemblies            Assembly[]
   subComponentHourLogs  SubComponentHourLog[]
+
+  @@index([assetCategory])
+  @@index([status])
 }
 
 model Assembly {
