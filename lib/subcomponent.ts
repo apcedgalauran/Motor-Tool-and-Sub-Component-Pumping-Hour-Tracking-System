@@ -62,6 +62,6 @@ export async function updateSubComponentRecord(id: string, data: UpdateSubCompon
 
   return prisma.subComponent.update({
     where: { id },
-    data: updateData,
+    data: updateData as any,
   });
 }

@@ -34,7 +34,7 @@ export async function assembleSubComponent(
   // Update sub-component status
   await prisma.subComponent.update({
     where: { id: subComponentId },
-    data: { status: 'INSTALLED' },
+    data: { status: 'INSTALLED' as any },
   });
 
   revalidatePath(`/motors/${motorId}`);
@@ -64,7 +64,7 @@ export async function disassembleSubComponent(assemblyId: string) {
   // Update sub-component status back to available
   await prisma.subComponent.update({
     where: { id: assembly.subComponentId },
-    data: { status: 'AVAILABLE' },
+    data: { status: 'AVAILABLE' as any },
   });
 
   revalidatePath(`/motors/${assembly.motorId}`);
@@ -99,7 +99,7 @@ export async function disperseToolset(motorId: string) {
     // Update all sub-component statuses back to AVAILABLE
     await Promise.all(
       active.map((a) =>
-        tx.subComponent.update({ where: { id: a.subComponentId }, data: { status: 'AVAILABLE' } })
+        tx.subComponent.update({ where: { id: a.subComponentId }, data: { status: 'AVAILABLE' as any } })
       )
     );
   });
