@@ -63,8 +63,8 @@ describe('PATCH /api/motors/[id]', () => {
     });
     tx.motorEditLog.create.mockResolvedValue({ id: 'log-1' });
 
-    vi.mocked(prisma.$transaction).mockImplementation(async (callback: never) => {
-      return callback(tx as never);
+    vi.mocked(prisma.$transaction).mockImplementation(async (callback: any) => {
+      return callback(tx as any);
     });
   });
 
