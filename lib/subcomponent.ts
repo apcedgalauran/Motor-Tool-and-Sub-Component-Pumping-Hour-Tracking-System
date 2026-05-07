@@ -1,5 +1,7 @@
 import { prisma } from '@/lib/prisma';
-import { normalizeEditableSubComponentStatus } from '@/lib/subcomponent-shared';
+import { ASSET_STATUS_META, type AssetStatus } from '@/lib/asset-status';
+
+const VALID_ASSET_STATUSES = new Set<string>(Object.keys(ASSET_STATUS_META));
 
 export function normalizeSubComponentType(value: string): string {
   const normalized = value.trim();
@@ -22,7 +24,7 @@ export async function updateSubComponentRecord(id: string, data: UpdateSubCompon
     type?: string;
     serialNumber?: string;
     notes?: string | null;
-    status?: string;
+    status?: AssetStatus;
   } = {};
 
   if (data.type !== undefined) {
@@ -53,7 +55,11 @@ export async function updateSubComponentRecord(id: string, data: UpdateSubCompon
   }
 
   if (data.status !== undefined) {
-    updateData.status = normalizeEditableSubComponentStatus(data.status);
+    const trimmed = data.status.trim();
+    if (!VALID_ASSET_STATUSES.has(trimmed)) {
+      throw new Error('Invalid status value.');
+    }
+    updateData.status = trimmed as AssetStatus;
   }
 
   if (Object.keys(updateData).length === 0) {
