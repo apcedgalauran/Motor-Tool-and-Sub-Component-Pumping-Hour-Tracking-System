@@ -1,8 +1,9 @@
 import { listSubComponents } from '@/actions/subcomponent.actions';
-import { ASSET_STATUS_META, type AssetStatus } from '@/lib/asset-status';
+import { type AssetStatus } from '@/lib/asset-status';
 import { AssetStatusBadge } from '@/components/asset-status-selector';
 import { parseListParams, buildListUrl, VALID_PAGE_SIZES } from '@/lib/utils';
 import { LiveSearchInput } from '@/components/LiveSearchInput';
+import { StatusFilterBadges } from '@/components/StatusFilterBadges';
 import Link from 'next/link';
 import { Suspense } from 'react';
 
@@ -164,31 +165,7 @@ export default async function MotorSleevesPage({
           />
 
           {/* Status badges */}
-          {(Object.keys(ASSET_STATUS_META) as AssetStatus[]).map((s) => {
-            const meta = ASSET_STATUS_META[s];
-            const active = statuses.includes(s);
-            return (
-              <label
-                key={s}
-                className="flex items-center cursor-pointer select-none"
-                title={meta.label}
-              >
-                <input
-                  type="checkbox"
-                  name="statuses[]"
-                  value={s}
-                  defaultChecked={active}
-                  className="sr-only"
-                />
-                <span
-                  className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold border transition-all ${active ? 'opacity-100 ring-2 ring-offset-1' : 'opacity-50 hover:opacity-80'}`}
-                  style={{ background: meta.color, color: meta.textColor, borderColor: meta.color }}
-                >
-                  {meta.code}
-                </span>
-              </label>
-            );
-          })}
+          <StatusFilterBadges initialStatuses={statuses as AssetStatus[]} />
 
           {/* Sort + dir */}
           <select

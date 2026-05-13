@@ -1,8 +1,9 @@
 import { listMotors } from '@/actions/motor.actions';
 import { MotorsBrowseView } from '@/components/MotorsBrowseView';
-import { ASSET_STATUS_META, type AssetStatus } from '@/lib/asset-status';
+import { type AssetStatus } from '@/lib/asset-status';
 import { parseListParams, buildListUrl, VALID_PAGE_SIZES } from '@/lib/utils';
 import { LiveSearchInput } from '@/components/LiveSearchInput';
+import { StatusFilterBadges } from '@/components/StatusFilterBadges';
 import Link from 'next/link';
 import { Suspense } from 'react';
 
@@ -109,41 +110,7 @@ export default async function MotorsPage({
 
         <div className="flex flex-wrap gap-2 items-center">
           {/* Status multi-select */}
-          <div className="flex flex-wrap gap-1.5">
-            {(Object.keys(ASSET_STATUS_META) as AssetStatus[]).map((s) => {
-              const meta = ASSET_STATUS_META[s];
-              const active = statuses.includes(s);
-              return (
-                <label
-                  key={s}
-                  className="flex items-center gap-1 cursor-pointer select-none"
-                  title={meta.label}
-                >
-                  <input
-                    type="checkbox"
-                    name="statuses[]"
-                    value={s}
-                    defaultChecked={active}
-                    className="sr-only"
-                  />
-                  <span
-                    className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold border transition-all ${
-                      active
-                        ? 'opacity-100 ring-2 ring-offset-1'
-                        : 'opacity-50 hover:opacity-80'
-                    }`}
-                    style={{
-                      background: meta.color,
-                      color: meta.textColor,
-                      borderColor: meta.color,
-                    }}
-                  >
-                    {meta.code}
-                  </span>
-                </label>
-              );
-            })}
-          </div>
+          <StatusFilterBadges initialStatuses={statuses as AssetStatus[]} />
 
           {/* Sort */}
           <select
