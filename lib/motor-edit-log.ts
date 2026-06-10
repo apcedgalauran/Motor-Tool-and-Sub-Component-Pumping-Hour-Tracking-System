@@ -12,6 +12,7 @@ export const MOTOR_EDITABLE_FIELDS = [
   'size',
   'brandType',
   'connection',
+  'notes',
 ] as const;
 
 export type MotorEditableField = (typeof MOTOR_EDITABLE_FIELDS)[number];
@@ -35,6 +36,7 @@ export type MotorEditableSnapshot = {
   size: string | null;
   brandType: string | null;
   connection: string | null;
+  notes: string | null;
 };
 
 const MOTOR_FIELD_LABELS: Record<MotorEditableField, string> = {
@@ -49,6 +51,7 @@ const MOTOR_FIELD_LABELS: Record<MotorEditableField, string> = {
   size: 'Size',
   brandType: 'Brand / Type',
   connection: 'Connection',
+  notes: 'Notes/Remarks',
 };
 
 function toDateInputString(value: Date | string | null | undefined): string | null {

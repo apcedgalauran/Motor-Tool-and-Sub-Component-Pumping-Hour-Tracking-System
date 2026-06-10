@@ -179,10 +179,66 @@ export async function PATCH(
 
     revalidatePath('/sub-components');
     revalidatePath(`/sub-components/${id}`);
+    revalidatePath('/stators');
+    revalidatePath('/rotors');
+    revalidatePath('/motor-sleeves');
 
     return NextResponse.json({ subComponent: updated }, { status: 200 });
   } catch (error) {
     const parsed = parsePatchError(error);
     return NextResponse.json({ error: parsed.message }, { status: parsed.status });
+  }
+}
+
+export async function DELETE(
+  _request: NextRequest,
+  context: { params: Promise<{ id: string }> }
+) {
+  try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
+    }
+
+    const { id } = await context.params;
+
+    const subComponent = await prisma.subComponent.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        assetCategory: true,
+        assemblies: {
+          where: { dateRemoved: null },
+          select: { id: true },
+          take: 1,
+        },
+      },
+    });
+
+    if (!subComponent) {
+      return NextResponse.json({ error: 'Sub-component not found.' }, { status: 404 });
+    }
+
+    // PRD guard: deletion blocked when currently assembled
+    if (subComponent.assemblies.length > 0) {
+      return NextResponse.json(
+        { error: 'Cannot delete: this sub-component is currently assembled in a motor. Disassemble it first.' },
+        { status: 409 }
+      );
+    }
+
+    await prisma.subComponent.delete({ where: { id } });
+
+    revalidatePath('/sub-components');
+    revalidatePath('/stators');
+    revalidatePath('/rotors');
+    revalidatePath('/motor-sleeves');
+
+    return NextResponse.json({ success: true }, { status: 200 });
+  } catch (error) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025') {
+      return NextResponse.json({ error: 'Sub-component not found.' }, { status: 404 });
+    }
+    return NextResponse.json({ error: 'Failed to delete sub-component.' }, { status: 500 });
   }
 }

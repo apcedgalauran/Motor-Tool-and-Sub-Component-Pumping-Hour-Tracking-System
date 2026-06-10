@@ -1,10 +1,11 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { assembleSubComponent, disassembleSubComponent, disperseToolset } from '@/actions/assembly.actions';
 import { getAvailableSubComponents } from '@/actions/subcomponent.actions';
 import { AssemblyTable } from '@/components/AssemblyTable';
+import { ConfirmModal } from '@/components/ConfirmModal';
 import { SUB_COMPONENT_LABELS, formatHours } from '@/lib/utils';
 import Link from 'next/link';
 
@@ -40,31 +41,51 @@ export function MotorAssemblyTab({ motorId, assemblies }: MotorAssemblyTabProps)
 
   // --- Disassemble / Disperse state ---
   const [disassembling, setDisassembling] = useState<string | null>(null);
+  const [pendingDisassembleId, setPendingDisassembleId] = useState<string | null>(null);
+  const [isDisassemblingModal, setIsDisassemblingModal] = useState(false);
 
-  async function handleDisassemble(assemblyId: string) {
-    if (!confirm('Are you sure you want to remove this sub-component?')) return;
-    setDisassembling(assemblyId);
+  const [isDisperseConfirmOpen, setIsDisperseConfirmOpen] = useState(false);
+  const [isDispersingModal, setIsDispersingModal] = useState(false);
+
+  async function executeDisassemble() {
+    if (!pendingDisassembleId) return;
+    setIsDisassemblingModal(true);
+    setDisassembling(pendingDisassembleId);
     try {
-      await disassembleSubComponent(assemblyId);
+      await disassembleSubComponent(pendingDisassembleId);
+      setPendingDisassembleId(null);
     } catch (err) {
       alert(err instanceof Error ? err.message : 'Failed to disassemble');
     } finally {
+      setIsDisassemblingModal(false);
       setDisassembling(null);
     }
   }
 
-  async function handleDisperse() {
-    const active = assemblies.filter((a) => !a.dateRemoved);
-    if (active.length === 0) return;
-    const list = active.map((a) => `${a.subComponent.type} — ${a.subComponent.serialNumber}`).join('\n');
-    if (!confirm(`Remove all assembled sub-components from this motor?\n\n${list}`)) return;
+  async function executeDisperse() {
+    setIsDispersingModal(true);
     try {
       await disperseToolset(motorId);
+      setIsDisperseConfirmOpen(false);
       router.refresh();
     } catch (err) {
       alert(err instanceof Error ? err.message : 'Failed to disperse');
+    } finally {
+      setIsDispersingModal(false);
     }
   }
+
+  const activeSubComponentsText = useMemo(() => {
+    const active = assemblies.filter((a) => !a.dateRemoved);
+    return active.map((a) => `${a.subComponent.type} — ${a.subComponent.serialNumber}`).join('\n');
+  }, [assemblies]);
+
+  const disassembleTargetText = useMemo(() => {
+    if (!pendingDisassembleId) return '';
+    const found = assemblies.find((a) => a.id === pendingDisassembleId);
+    if (!found) return '';
+    return `${found.subComponent.type} (Serial: ${found.subComponent.serialNumber})`;
+  }, [pendingDisassembleId, assemblies]);
 
   // Convert string dates back to Date objects for AssemblyTable
   const parsed = assemblies.map((a) => ({
@@ -80,6 +101,7 @@ export function MotorAssemblyTab({ motorId, assemblies }: MotorAssemblyTabProps)
   const [fetching, setFetching] = useState(true);
   const [assembleError, setAssembleError] = useState('');
   const [assembleSuccess, setAssembleSuccess] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
 
   const loadAvailable = useCallback(async () => {
     setFetching(true);
@@ -96,6 +118,20 @@ export function MotorAssemblyTab({ motorId, assemblies }: MotorAssemblyTabProps)
   useEffect(() => {
     void loadAvailable();
   }, [loadAvailable]);
+
+  // Filter available sub-components by search term
+  const filteredAvailable = useMemo(() => {
+    if (!searchTerm.trim()) return available;
+    const q = searchTerm.toLowerCase().trim();
+    return available.filter(
+      (sc) =>
+        sc.serialNumber.toLowerCase().includes(q) ||
+        sc.type.toLowerCase().includes(q) ||
+        (SUB_COMPONENT_LABELS[sc.type as keyof typeof SUB_COMPONENT_LABELS] || '')
+          .toLowerCase()
+          .includes(q)
+    );
+  }, [available, searchTerm]);
 
   async function handleAssemble() {
     if (!selectedId) return;
@@ -140,35 +176,50 @@ export function MotorAssemblyTab({ motorId, assemblies }: MotorAssemblyTabProps)
           </div>
         ) : (
           <div className="space-y-4">
+            {/* Search filter */}
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Filter by serial number or type…"
+              className="w-full bg-[#EBEBEB] border border-[var(--border)] rounded-lg px-3 py-2.5 text-sm text-[#333333] placeholder:text-[#A3A3A3] focus:outline-none focus:border-[#9E9EB0] focus:ring-1 focus:ring-[#9E9EB0]/30 transition-colors"
+            />
+
             <div className="space-y-2 max-h-80 overflow-y-auto pr-1">
-              {available.map((sc) => (
-                <label
-                  key={sc.id}
-                  className={`flex items-center justify-between p-3 rounded-lg border cursor-pointer transition-all ${
-                    selectedId === sc.id
-                      ? 'border-[#9E9EB0] bg-[#9E9EB0]/5'
-                      : 'border-[var(--border)] hover:border-[#9E9EB0]/50'
-                  }`}
-                >
-                  <div className="flex items-center gap-3">
-                    <input
-                      type="radio"
-                      name="subComponent"
-                      value={sc.id}
-                      checked={selectedId === sc.id}
-                      onChange={() => setSelectedId(sc.id)}
-                      className="accent-[#9E9EB0]"
-                    />
-                    <div>
-                      <p className="text-sm font-medium text-[#333333]">
-                        {SUB_COMPONENT_LABELS[sc.type as keyof typeof SUB_COMPONENT_LABELS] || sc.type}
-                      </p>
-                      <p className="text-xs text-[#333333] font-mono">{sc.serialNumber}</p>
+              {filteredAvailable.length === 0 ? (
+                <p className="text-sm text-[#333333] text-center py-4">
+                  No components match &ldquo;{searchTerm}&rdquo;
+                </p>
+              ) : (
+                filteredAvailable.map((sc) => (
+                  <label
+                    key={sc.id}
+                    className={`flex items-center justify-between p-3 rounded-lg border cursor-pointer transition-all ${
+                      selectedId === sc.id
+                        ? 'border-[#9E9EB0] bg-[#9E9EB0]/5'
+                        : 'border-[var(--border)] hover:border-[#9E9EB0]/50'
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="radio"
+                        name="subComponent"
+                        value={sc.id}
+                        checked={selectedId === sc.id}
+                        onChange={() => setSelectedId(sc.id)}
+                        className="accent-[#9E9EB0]"
+                      />
+                      <div>
+                        <p className="text-sm font-medium text-[#333333]">
+                          {SUB_COMPONENT_LABELS[sc.type as keyof typeof SUB_COMPONENT_LABELS] || sc.type}
+                        </p>
+                        <p className="text-xs text-[#333333] font-mono">{sc.serialNumber}</p>
+                      </div>
                     </div>
-                  </div>
-                  <span className="text-xs text-[#121212] font-semibold">{formatHours(sc.cumulativeHours)} hrs</span>
-                </label>
-              ))}
+                    <span className="text-xs text-[#121212] font-semibold">{formatHours(sc.cumulativeHours)} hrs</span>
+                  </label>
+                ))
+              )}
             </div>
 
             {assembleError && (
@@ -201,7 +252,7 @@ export function MotorAssemblyTab({ motorId, assemblies }: MotorAssemblyTabProps)
         {parsed.filter((a) => !a.dateRemoved).length > 0 && (
           <div className="mb-3 flex justify-end">
             <button
-              onClick={handleDisperse}
+              onClick={() => setIsDisperseConfirmOpen(true)}
               className="text-xs bg-red-500/10 text-red-500 border border-red-500/20 px-3 py-1.5 rounded-md hover:bg-red-500/20 transition-colors"
             >
               Disperse Toolset
@@ -212,10 +263,32 @@ export function MotorAssemblyTab({ motorId, assemblies }: MotorAssemblyTabProps)
         <AssemblyTable
           assemblies={parsed}
           showActions
-          onDisassemble={handleDisassemble}
+          onDisassemble={(id) => setPendingDisassembleId(id)}
           disassembling={disassembling}
         />
       </div>
+
+      <ConfirmModal
+        isOpen={Boolean(pendingDisassembleId)}
+        onClose={() => setPendingDisassembleId(null)}
+        onConfirm={executeDisassemble}
+        title="Remove Sub-Component"
+        message={`Are you sure you want to remove ${disassembleTargetText} from this motor?`}
+        confirmText="Remove"
+        isDestructive={true}
+        isLoading={isDisassemblingModal}
+      />
+
+      <ConfirmModal
+        isOpen={isDisperseConfirmOpen}
+        onClose={() => setIsDisperseConfirmOpen(false)}
+        onConfirm={executeDisperse}
+        title="Disperse Toolset"
+        message={`Remove all assembled sub-components from this motor?\n\n${activeSubComponentsText}`}
+        confirmText="Disperse"
+        isDestructive={true}
+        isLoading={isDispersingModal}
+      />
     </div>
   );
 }

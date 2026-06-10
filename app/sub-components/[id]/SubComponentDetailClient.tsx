@@ -6,6 +6,7 @@ import { SUB_COMPONENT_LABELS, formatDate, formatHours } from '@/lib/utils';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
+import { ConfirmModal } from '@/components/ConfirmModal';
 
 type AssemblyRecord = {
   id: string;
@@ -85,6 +86,35 @@ export function SubComponentDetailClient({ initialSubComponent }: { initialSubCo
   const [editConfiguration, setEditConfiguration] = useState(initialSubComponent.configuration ?? '');
   const [editBrand, setEditBrand] = useState(initialSubComponent.brand ?? '');
   const [isSavingEdit, setIsSavingEdit] = useState(false);
+  const [isDeletingSc, setIsDeletingSc] = useState(false);
+  const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
+
+  async function handleDeleteConfirm() {
+    setIsDeletingSc(true);
+    try {
+      const response = await fetch(`/api/sub-components/${subComponent.id}`, { method: 'DELETE' });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(payload.error || 'Failed to delete sub-component.');
+      }
+      setIsDeleteConfirmOpen(false);
+      setIsEditOpen(false);
+      const categoryRoutes: Record<string, string> = {
+        STATOR: '/stators',
+        ROTOR: '/rotors',
+        MOTOR_SLEEVE: '/motor-sleeves',
+      };
+      router.push(categoryRoutes[subComponent.assetCategory] ?? '/sub-components');
+    } catch (error) {
+      setFlash({
+        tone: 'error',
+        message: error instanceof Error ? error.message : 'Failed to delete sub-component.',
+      });
+      setIsDeletingSc(false);
+      setIsDeleteConfirmOpen(false);
+      setIsEditOpen(false);
+    }
+  }
 
   const [isHoursOpen, setIsHoursOpen] = useState(false);
   const [hoursAdded, setHoursAdded] = useState('');
@@ -310,7 +340,12 @@ export function SubComponentDetailClient({ initialSubComponent }: { initialSubCo
               )}
             </div>
             <p className="text-sm text-[#333333] font-mono break-all">{subComponent.serialNumber}</p>
-            {subComponent.notes && <p className="text-xs text-[#333333] mt-1">{subComponent.notes}</p>}
+            {subComponent.notes && (
+              <div className="mt-3 p-3 bg-[#EBEBEB]/40 border border-[var(--border)] rounded-lg text-xs text-[#333333] max-w-md">
+                <span className="font-mono font-semibold uppercase tracking-wider text-[10px] text-[#9E9EB0] block mb-1">Notes / Remarks</span>
+                <p className="whitespace-pre-wrap">{subComponent.notes}</p>
+              </div>
+            )}
           </div>
 
           <div className="w-full min-w-0 md:w-auto md:flex-shrink-0 space-y-2">
@@ -514,7 +549,7 @@ export function SubComponentDetailClient({ initialSubComponent }: { initialSubCo
             role="dialog"
             aria-modal="true"
             aria-labelledby="edit-subcomponent-title"
-            className="w-[90vw] max-w-[420px] md:max-w-lg max-h-[85vh] overflow-y-auto bg-[var(--card)] border border-[var(--border)] rounded-xl p-5 sm:p-6 shadow-2xl"
+            className="w-[90vw] max-w-[420px] md:max-w-2xl bg-[var(--card)] border border-[var(--border)] rounded-xl p-5 sm:p-6 shadow-2xl"
             onClick={(event) => event.stopPropagation()}
           >
             <h2 id="edit-subcomponent-title" className="text-lg font-bold font-mono tracking-tight text-[#121212]">
@@ -523,100 +558,112 @@ export function SubComponentDetailClient({ initialSubComponent }: { initialSubCo
             <p className="text-xs text-[#333333] mt-1 mb-4">Update details and current status.</p>
 
             <form onSubmit={handleSaveEdit} className="space-y-4">
-              <div>
-                <label className={fieldLabelClass}>Component Type *</label>
-                <select
-                  value={editType}
-                  onChange={(event) => setEditType(event.target.value)}
-                  required
-                  className={fieldControlClass}
-                >
-                  {typeOptions.map(([value, label]) => (
-                    <option key={value} value={value}>{label}</option>
-                  ))}
-                </select>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className={fieldLabelClass}>Component Type *</label>
+                  <select
+                    value={editType}
+                    onChange={(event) => setEditType(event.target.value)}
+                    required
+                    className={fieldControlClass}
+                  >
+                    {typeOptions.map(([value, label]) => (
+                      <option key={value} value={value}>{label}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className={fieldLabelClass}>Serial Number *</label>
+                  <input
+                    value={editSerialNumber}
+                    onChange={(event) => setEditSerialNumber(event.target.value)}
+                    required
+                    className={fieldControlClass}
+                  />
+                </div>
               </div>
 
-              <div>
-                <label className={fieldLabelClass}>Serial Number *</label>
-                <input
-                  value={editSerialNumber}
-                  onChange={(event) => setEditSerialNumber(event.target.value)}
-                  required
-                  className={fieldControlClass}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <AssetStatusSelector
+                  value={editStatus}
+                  onChange={setEditStatus}
+                  label="Status *"
                 />
-              </div>
 
-              <AssetStatusSelector
-                value={editStatus}
-                onChange={setEditStatus}
-                label="Status *"
-              />
-
-              <div>
-                <label className={fieldLabelClass}>Notes</label>
-                <textarea
-                  value={editNotes}
-                  onChange={(event) => setEditNotes(event.target.value)}
-                  rows={3}
-                  className={textAreaClass}
-                />
+                <div>
+                  <label className={fieldLabelClass}>Notes</label>
+                  <textarea
+                    value={editNotes}
+                    onChange={(event) => setEditNotes(event.target.value)}
+                    rows={2}
+                    className={`${fieldControlClass} min-h-11 md:min-h-[44px] resize-none py-2 px-3`}
+                  />
+                </div>
               </div>
 
               {/* Asset-specific fields — STATOR / ROTOR / MOTOR_SLEEVE only */}
               {isTopLevel && (
-                <>
-                  <div className="border-t border-[var(--border)] pt-4">
-                    <p className="text-[10px] uppercase tracking-wider text-[#333333] mb-3">Asset Details</p>
-                    <div className="space-y-3">
-                      <div>
-                        <label className={fieldLabelClass}>SAP ID</label>
-                        <input
-                          value={editSapId}
-                          onChange={(event) => setEditSapId(event.target.value)}
-                          placeholder="e.g. 1234567890"
-                          className={fieldControlClass}
-                        />
-                      </div>
-                      <div>
-                        <label className={fieldLabelClass}>Size</label>
-                        <input
-                          value={editSize}
-                          onChange={(event) => setEditSize(event.target.value)}
-                          placeholder='e.g. 9 5/8"'
-                          className={fieldControlClass}
-                        />
-                      </div>
-                      <div>
-                        <label className={fieldLabelClass}>Brand / Type</label>
-                        <input
-                          value={editBrand}
-                          onChange={(event) => setEditBrand(event.target.value)}
-                          placeholder="Brand or type label"
-                          className={fieldControlClass}
-                        />
-                      </div>
-                      <div>
-                        <label className={fieldLabelClass}>Configuration</label>
-                        <input
-                          value={editConfiguration}
-                          onChange={(event) => setEditConfiguration(event.target.value)}
-                          placeholder="Asset configuration"
-                          className={fieldControlClass}
-                        />
-                      </div>
+                <div className="border-t border-[var(--border)] pt-4">
+                  <p className="text-[10px] uppercase tracking-wider text-[#333333] mb-3">Asset Details</p>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className={fieldLabelClass}>SAP ID</label>
+                      <input
+                        value={editSapId}
+                        onChange={(event) => setEditSapId(event.target.value)}
+                        placeholder="e.g. 1234567890"
+                        className={fieldControlClass}
+                      />
+                    </div>
+                    <div>
+                      <label className={fieldLabelClass}>Size</label>
+                      <input
+                        value={editSize}
+                        onChange={(event) => setEditSize(event.target.value)}
+                        placeholder='e.g. 9 5/8"'
+                        className={fieldControlClass}
+                      />
+                    </div>
+                    <div>
+                      <label className={fieldLabelClass}>Brand / Type</label>
+                      <input
+                        value={editBrand}
+                        onChange={(event) => setEditBrand(event.target.value)}
+                        placeholder="Brand or type label"
+                        className={fieldControlClass}
+                      />
+                    </div>
+                    <div>
+                      <label className={fieldLabelClass}>Configuration</label>
+                      <input
+                        value={editConfiguration}
+                        onChange={(event) => setEditConfiguration(event.target.value)}
+                        placeholder="Asset configuration"
+                        className={fieldControlClass}
+                      />
                     </div>
                   </div>
-                </>
+                </div>
               )}
 
-              <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 pt-1">
-                <button type="button" onClick={closeEdit} className={modalSecondaryButtonClass}>
-                  Cancel
+              <div className="flex flex-col-reverse sm:flex-row sm:justify-between gap-2 pt-1">
+                <button
+                  type="button"
+                  disabled={isDeletingSc}
+                  onClick={() => setIsDeleteConfirmOpen(true)}
+                  className="w-full sm:w-auto min-h-11 px-4 py-3 md:py-2.5 rounded-lg bg-red-600 hover:bg-red-700 text-sm font-semibold font-mono text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Delete
                 </button>
-                <button type="submit" disabled={isSavingEdit} className={modalPrimaryButtonClass}>
-                  {isSavingEdit ? 'Saving...' : 'Save'}
-                </button>
+                <div className="flex flex-col-reverse sm:flex-row gap-2">
+                  <button type="button" onClick={closeEdit} className={modalSecondaryButtonClass}>
+                    Cancel
+                  </button>
+                  <button type="submit" disabled={isSavingEdit} className={modalPrimaryButtonClass}>
+                    {isSavingEdit ? 'Saving...' : 'Save'}
+                  </button>
+                </div>
               </div>
             </form>
           </div>
@@ -632,7 +679,7 @@ export function SubComponentDetailClient({ initialSubComponent }: { initialSubCo
             role="dialog"
             aria-modal="true"
             aria-labelledby="add-hours-title"
-            className="w-[90vw] max-w-[420px] md:max-w-lg max-h-[85vh] overflow-y-auto bg-[var(--card)] border border-[var(--border)] rounded-xl p-5 sm:p-6 shadow-2xl"
+            className="w-[90vw] max-w-[420px] md:max-w-xl bg-[var(--card)] border border-[var(--border)] rounded-xl p-5 sm:p-6 shadow-2xl"
             onClick={(event) => event.stopPropagation()}
           >
             <h2 id="add-hours-title" className="text-lg font-bold font-mono tracking-tight text-[#121212]">
@@ -644,42 +691,51 @@ export function SubComponentDetailClient({ initialSubComponent }: { initialSubCo
             </p>
 
             <form onSubmit={handleLogHours} className="space-y-4">
-              <div>
-                <label className={fieldLabelClass}>Hours Added *</label>
-                <input
-                  type="number"
-                  step="0.1"
-                  min="0.1"
-                  value={hoursAdded}
-                  onChange={(event) => setHoursAdded(event.target.value)}
-                  required
-                  className={fieldControlClass}
-                />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className={fieldLabelClass}>Hours Added *</label>
+                  <input
+                    type="number"
+                    step="0.1"
+                    min="0.1"
+                    value={hoursAdded}
+                    onChange={(event) => setHoursAdded(event.target.value)}
+                    required
+                    className={fieldControlClass}
+                  />
+                </div>
+
+                <div>
+                  <label className={fieldLabelClass}>Rig Name *</label>
+                  <input
+                    value={rigName}
+                    onChange={(event) => setRigName(event.target.value)}
+                    required
+                    className={fieldControlClass}
+                  />
+                </div>
               </div>
 
-              <div>
-                <label className={fieldLabelClass}>Rig Name *</label>
-                <input
-                  value={rigName}
-                  onChange={(event) => setRigName(event.target.value)}
-                  required
-                  className={fieldControlClass}
-                />
-              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className={fieldLabelClass}>Well Number *</label>
+                  <input
+                    value={wellNumber}
+                    onChange={(event) => setWellNumber(event.target.value)}
+                    required
+                    className={fieldControlClass}
+                  />
+                </div>
 
-              <div>
-                <label className={fieldLabelClass}>Well Number *</label>
-                <input
-                  value={wellNumber}
-                  onChange={(event) => setWellNumber(event.target.value)}
-                  required
-                  className={fieldControlClass}
-                />
-              </div>
-
-              <div>
-                <label className={fieldLabelClass}>Notes</label>
-                <textarea value={notes} onChange={(event) => setNotes(event.target.value)} rows={3} className={textAreaClass} />
+                <div>
+                  <label className={fieldLabelClass}>Notes</label>
+                  <textarea
+                    value={notes}
+                    onChange={(event) => setNotes(event.target.value)}
+                    rows={2}
+                    className={`${fieldControlClass} min-h-11 md:min-h-[44px] resize-none py-2 px-3`}
+                  />
+                </div>
               </div>
 
               <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 pt-1">
@@ -694,6 +750,17 @@ export function SubComponentDetailClient({ initialSubComponent }: { initialSubCo
           </div>
         </div>
       )}
+
+      <ConfirmModal
+        isOpen={isDeleteConfirmOpen}
+        onClose={() => setIsDeleteConfirmOpen(false)}
+        onConfirm={handleDeleteConfirm}
+        title="Delete Sub-Component"
+        message="Are you sure you want to delete this sub-component? This action cannot be undone."
+        confirmText="Delete"
+        isDestructive={true}
+        isLoading={isDeletingSc}
+      />
     </>
   );
 }

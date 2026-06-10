@@ -1,6 +1,7 @@
 import { listSubComponents } from '@/actions/subcomponent.actions';
 import { type AssetStatus } from '@/lib/asset-status';
 import { AssetStatusBadge } from '@/components/asset-status-selector';
+import { ClickableRow } from '@/components/ClickableRow';
 import { parseListParams, buildListUrl, VALID_PAGE_SIZES } from '@/lib/utils';
 import { LiveSearchInput } from '@/components/LiveSearchInput';
 import { StatusFilterBadges } from '@/components/StatusFilterBadges';
@@ -250,17 +251,15 @@ export default async function MotorSleevesPage({
                 {sleeves.map((sc, i) => {
                   const currentMotor = sc.assemblies[0]?.motor ?? null;
                   return (
-                    <tr
+                    <ClickableRow
                       key={sc.id}
-                      className={`border-b border-[var(--border)] last:border-0 hover:bg-[var(--card)] transition-colors animate-fade-in stagger-${Math.min(i + 1, 6)}`}
+                      href={`/sub-components/${sc.id}`}
+                      className={`border-b border-[var(--border)] last:border-0 hover:bg-gray-50 transition-colors animate-fade-in stagger-${Math.min(i + 1, 6)}`}
                     >
                       <td className="px-4 py-3">
-                        <Link
-                          href={`/sub-components/${sc.id}`}
-                          className="font-mono font-medium text-[#121212] hover:text-[#9E9EB0] transition-colors"
-                        >
+                        <span className="font-mono font-medium text-[#121212]">
                           {sc.serialNumber}
-                        </Link>
+                        </span>
                       </td>
                       <td className="px-4 py-3 font-mono text-[#333333]">
                         {sc.sapId ?? <span className="text-[#A3A3A3]">—</span>}
@@ -292,7 +291,7 @@ export default async function MotorSleevesPage({
                       <td className="px-4 py-3">
                         <AssetStatusBadge status={sc.status as AssetStatus} />
                       </td>
-                    </tr>
+                    </ClickableRow>
                   );
                 })}
               </tbody>

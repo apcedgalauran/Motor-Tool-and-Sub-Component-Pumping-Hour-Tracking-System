@@ -7,6 +7,7 @@ import { formatDate } from '@/lib/utils';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
+import { ConfirmModal } from '@/components/ConfirmModal';
 
 type InlineMotor = {
   id: string;
@@ -22,6 +23,7 @@ type InlineMotor = {
   size: string | null;
   brandType: string | null;
   connection: string | null;
+  notes: string | null;
 };
 
 type Notice = {
@@ -68,6 +70,29 @@ export function MotorInlineEditor({ initialMotor, activeAssembliesCount }: Motor
   const [draft, setDraft] = useState<InlineMotor>(initialMotor);
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
+
+  async function handleDeleteConfirm() {
+    setIsDeleting(true);
+    setNotice(null);
+    try {
+      const response = await fetch(`/api/motors/${motor.id}`, { method: 'DELETE' });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to delete motor.');
+      }
+      setIsDeleteConfirmOpen(false);
+      router.push('/motors');
+    } catch (error) {
+      setNotice({
+        tone: 'error',
+        message: error instanceof Error ? error.message : 'Failed to delete motor.',
+      });
+      setIsDeleting(false);
+      setIsDeleteConfirmOpen(false);
+    }
+  }
   const [notice, setNotice] = useState<Notice | null>(null);
   const [dateFieldKey, setDateFieldKey] = useState(0);
 
@@ -116,6 +141,7 @@ export function MotorInlineEditor({ initialMotor, activeAssembliesCount }: Motor
       size: draft.size,
       brandType: draft.brandType,
       connection: draft.connection,
+      notes: draft.notes,
     };
 
     if (!payload.name) {
@@ -152,6 +178,7 @@ export function MotorInlineEditor({ initialMotor, activeAssembliesCount }: Motor
           size: payload.size || null,
           brandType: payload.brandType || null,
           connection: payload.connection || null,
+          notes: payload.notes || null,
         }),
       });
 
@@ -173,6 +200,7 @@ export function MotorInlineEditor({ initialMotor, activeAssembliesCount }: Motor
         size: string | null;
         brandType: string | null;
         connection: string | null;
+        notes: string | null;
       };
 
       const nextMotor: InlineMotor = {
@@ -189,6 +217,7 @@ export function MotorInlineEditor({ initialMotor, activeAssembliesCount }: Motor
         size: updatedMotor.size ?? null,
         brandType: updatedMotor.brandType ?? null,
         connection: updatedMotor.connection ?? null,
+        notes: updatedMotor.notes ?? null,
       };
 
       setMotor(nextMotor);
@@ -302,6 +331,16 @@ export function MotorInlineEditor({ initialMotor, activeAssembliesCount }: Motor
                         className="w-full bg-[#EBEBEB] border border-[var(--border)] rounded-lg px-3 py-3 md:py-2.5 text-sm text-[#333333] placeholder:text-[#A3A3A3] focus:outline-none focus:border-[#9E9EB0] focus:ring-1 focus:ring-[#9E9EB0]/30 transition-colors"
                       />
                     </div>
+                    <div className="md:col-span-2">
+                      <label className="block text-xs text-[#333333] mb-1.5 uppercase tracking-wider">Notes / Remarks</label>
+                      <textarea
+                        value={draft.notes ?? ''}
+                        onChange={(event) => updateDraftField('notes', event.target.value)}
+                        rows={3}
+                        placeholder="Additional notes or remarks"
+                        className="w-full bg-[#EBEBEB] border border-[var(--border)] rounded-lg px-3 py-3 md:py-2.5 text-sm text-[#333333] placeholder:text-[#A3A3A3] focus:outline-none focus:border-[#9E9EB0] focus:ring-1 focus:ring-[#9E9EB0]/30 transition-colors min-h-20 resize-none"
+                      />
+                    </div>
                   </div>
                 </div>
               </div>
@@ -315,6 +354,12 @@ export function MotorInlineEditor({ initialMotor, activeAssembliesCount }: Motor
                   {motor.serialNumber}
                 </p>
                 {motor.location && <p className="text-xs text-[#333333] mt-1">{motor.location}</p>}
+                {motor.notes && (
+                  <div className="mt-3 p-3 bg-[#EBEBEB]/40 border border-[var(--border)] rounded-lg text-xs text-[#333333] max-w-md">
+                    <span className="font-mono font-semibold uppercase tracking-wider text-[10px] text-[#9E9EB0] block mb-1">Notes / Remarks</span>
+                    <p className="whitespace-pre-wrap">{motor.notes}</p>
+                  </div>
+                )}
                 {(motor.sapId || motor.assetType || motor.size || motor.brandType || motor.connection) && (
                   <div className="flex flex-wrap gap-x-4 gap-y-0.5 mt-2">
                     {motor.sapId && <span className="text-[10px] text-[#A3A3A3]"><span className="font-semibold text-[#9E9EB0]">SAP:</span> {motor.sapId}</span>}
@@ -344,6 +389,14 @@ export function MotorInlineEditor({ initialMotor, activeAssembliesCount }: Motor
                   className={`${primaryButtonClass} disabled:opacity-50 disabled:cursor-not-allowed`}
                 >
                   {isSaving ? 'Saving...' : 'Save Changes'}
+                </button>
+                <button
+                  type="button"
+                  disabled={isDeleting}
+                  onClick={() => setIsDeleteConfirmOpen(true)}
+                  className="w-full md:w-auto text-center bg-red-600 text-white border border-transparent text-sm font-semibold font-mono px-4 py-3 md:py-2.5 rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Delete Motor
                 </button>
               </>
             ) : (
@@ -416,6 +469,17 @@ export function MotorInlineEditor({ initialMotor, activeAssembliesCount }: Motor
           </div>
         </div>
       </form>
+
+      <ConfirmModal
+        isOpen={isDeleteConfirmOpen}
+        onClose={() => setIsDeleteConfirmOpen(false)}
+        onConfirm={handleDeleteConfirm}
+        title="Delete Motor"
+        message="Are you sure you want to delete this motor? This action cannot be undone."
+        confirmText="Delete Motor"
+        isDestructive={true}
+        isLoading={isDeleting}
+      />
     </>
   );
 }

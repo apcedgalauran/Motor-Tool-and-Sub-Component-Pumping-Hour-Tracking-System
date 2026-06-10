@@ -130,6 +130,7 @@ export default async function MotorDetailPage({ params }: { params: Promise<{ id
           size: motor.size ?? null,
           brandType: motor.brandType ?? null,
           connection: motor.connection ?? null,
+          notes: motor.notes ?? null,
         }}
         activeAssembliesCount={activeAssemblies.length}
       />

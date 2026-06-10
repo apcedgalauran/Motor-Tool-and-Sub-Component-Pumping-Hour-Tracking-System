@@ -24,6 +24,7 @@ type PatchMotorBody = {
   size?: string | null;
   brandType?: string | null;
   connection?: string | null;
+  notes?: string | null;
 };
 
 const VALID_ASSET_STATUSES = new Set<string>(
@@ -98,6 +99,7 @@ export async function PATCH(
     let nextSize = existingMotor.size;
     let nextBrandType = existingMotor.brandType;
     let nextConnection = existingMotor.connection;
+    let nextNotes = existingMotor.notes;
 
     if (body.name !== undefined) {
       if (typeof body.name !== 'string') throw new Error('Motor Name/ID must be a string.');
@@ -214,6 +216,16 @@ export async function PATCH(
       updateData.connection = nextConnection;
     }
 
+    if (body.notes !== undefined) {
+      if (body.notes !== null && typeof body.notes !== 'string') {
+        throw new Error('Notes must be a string.');
+      }
+      touchedAnyField = true;
+      const trimmed = body.notes?.trim() ?? '';
+      nextNotes = trimmed || null;
+      updateData.notes = nextNotes;
+    }
+
     if (!touchedAnyField) {
       throw new Error('No valid fields to update.');
     }
@@ -243,6 +255,7 @@ export async function PATCH(
       size: existingMotor.size,
       brandType: existingMotor.brandType,
       connection: existingMotor.connection,
+      notes: existingMotor.notes,
     };
 
     const nextSnapshot: MotorEditableSnapshot = {
@@ -257,6 +270,7 @@ export async function PATCH(
       size: nextSize,
       brandType: nextBrandType,
       connection: nextConnection,
+      notes: nextNotes,
     };
 
     const changedFields = buildMotorChangedFields(previousSnapshot, nextSnapshot);
@@ -311,5 +325,60 @@ export async function PATCH(
     }
 
     return NextResponse.json({ error: 'Failed to update motor.' }, { status: 500 });
+  }
+}
+
+export async function DELETE(
+  _request: NextRequest,
+  context: { params: Promise<{ id: string }> }
+) {
+  try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
+    }
+
+    const { id } = await context.params;
+
+    const motor = await prisma.motor.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        assemblies: {
+          where: { dateRemoved: null },
+          select: { id: true },
+          take: 1,
+        },
+      },
+    });
+
+    if (!motor) {
+      return NextResponse.json({ error: 'Motor not found.' }, { status: 404 });
+    }
+
+    // PRD guard: deletion blocked when active assemblies exist
+    if (motor.assemblies.length > 0) {
+      return NextResponse.json(
+        { error: 'Cannot delete: this motor has active assemblies. Disperse all sub-components first.' },
+        { status: 409 }
+      );
+    }
+
+    // Delete assemblies first (historical, already removed), then motor
+    await prisma.$transaction(async (tx) => {
+      await tx.assembly.deleteMany({ where: { motorId: id } });
+      await tx.hourLog.deleteMany({ where: { motorId: id } });
+      await tx.motor.delete({ where: { id } });
+    });
+
+    revalidatePath('/');
+    revalidatePath('/motors');
+
+    return NextResponse.json({ success: true }, { status: 200 });
+  } catch (error) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025') {
+      return NextResponse.json({ error: 'Motor not found.' }, { status: 404 });
+    }
+    return NextResponse.json({ error: 'Failed to delete motor.' }, { status: 500 });
   }
 }

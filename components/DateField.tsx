@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 
 type DateFieldProps = {
   name: string;
@@ -63,20 +64,49 @@ export default function DateField({ name, label, placeholder = 'Select date', de
     const initial = parseIsoDate(defaultValue ?? '') ?? new Date();
     return startOfMonth(initial);
   });
-  const containerRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const popoverRef = useRef<HTMLDivElement>(null);
+  const [popoverPos, setPopoverPos] = useState<{ top: number; left: number; width: number } | null>(null);
 
   const selectedDate = useMemo(() => parseIsoDate(value), [value]);
   const days = useMemo(() => buildCalendarDays(viewDate), [viewDate]);
   const today = useMemo(() => new Date(), []);
 
+  // Compute position from trigger button's bounding rect
+  const updatePosition = useCallback(() => {
+    if (!triggerRef.current) return;
+    const rect = triggerRef.current.getBoundingClientRect();
+    setPopoverPos({
+      top: rect.bottom + 8,
+      left: rect.left,
+      width: Math.max(rect.width, 260),
+    });
+  }, []);
+
+  useEffect(() => {
+    if (!open) return;
+    updatePosition();
+
+    // Reposition on scroll/resize
+    window.addEventListener('scroll', updatePosition, true);
+    window.addEventListener('resize', updatePosition);
+    return () => {
+      window.removeEventListener('scroll', updatePosition, true);
+      window.removeEventListener('resize', updatePosition);
+    };
+  }, [open, updatePosition]);
+
   useEffect(() => {
     if (!open) return;
 
     function handleClick(event: MouseEvent) {
-      if (!containerRef.current) return;
-      if (!containerRef.current.contains(event.target as Node)) {
-        setOpen(false);
+      if (
+        triggerRef.current?.contains(event.target as Node) ||
+        popoverRef.current?.contains(event.target as Node)
+      ) {
+        return;
       }
+      setOpen(false);
     }
 
     function handleKey(event: KeyboardEvent) {
@@ -97,8 +127,108 @@ export default function DateField({ name, label, placeholder = 'Select date', de
   const monthLabel = monthFormatter.format(viewDate);
   const displayValue = selectedDate ? displayFormatter.format(selectedDate) : '';
 
+  const calendarPopover = open && popoverPos ? createPortal(
+    <div
+      ref={popoverRef}
+      role="dialog"
+      aria-label={`${label} calendar`}
+      className="fixed z-[9999] rounded-2xl border border-[#D1D1DE] bg-[linear-gradient(180deg,#F9F9FC_0%,#ECECF2_100%)] p-3 shadow-[0_18px_40px_rgba(34,34,52,0.18)]"
+      style={{
+        top: popoverPos.top,
+        left: popoverPos.left,
+        width: popoverPos.width,
+        minWidth: 260,
+      }}
+    >
+      <div className="flex items-center justify-between">
+        <button
+          type="button"
+          onClick={() =>
+            setViewDate((prev) => new Date(prev.getFullYear(), prev.getMonth() - 1, 1))
+          }
+          className="rounded-lg border border-transparent px-2 py-1 text-xs font-semibold text-[#4E4E5C] transition hover:border-[#C9C9D4] hover:bg-white"
+        >
+          Prev
+        </button>
+        <div className="text-sm font-semibold text-[#1D1D26]">{monthLabel}</div>
+        <button
+          type="button"
+          onClick={() =>
+            setViewDate((prev) => new Date(prev.getFullYear(), prev.getMonth() + 1, 1))
+          }
+          className="rounded-lg border border-transparent px-2 py-1 text-xs font-semibold text-[#4E4E5C] transition hover:border-[#C9C9D4] hover:bg-white"
+        >
+          Next
+        </button>
+      </div>
+
+      <div className="mt-3 grid grid-cols-7 gap-1 text-[11px] font-semibold text-[#6B6B78]">
+        {WEEKDAYS.map((day) => (
+          <div key={day} className="text-center">
+            {day}
+          </div>
+        ))}
+      </div>
+
+      <div className="mt-2 grid grid-cols-7 gap-1">
+        {days.map((date) => {
+          const inMonth = date.getMonth() === viewDate.getMonth();
+          const isSelected = selectedDate ? isSameDay(date, selectedDate) : false;
+          const isToday = isSameDay(date, today);
+
+          return (
+            <button
+              key={date.toISOString()}
+              type="button"
+              onClick={() => {
+                setValue(toIsoDate(date));
+                setViewDate(startOfMonth(date));
+                setOpen(false);
+              }}
+              className={`flex h-9 w-9 items-center justify-center rounded-lg text-xs font-semibold transition ${
+                isSelected
+                  ? 'bg-[#4E4E5C] text-white shadow-[0_6px_16px_rgba(46,46,68,0.35)]'
+                  : inMonth
+                    ? 'text-[#1F1F1F] hover:bg-[#DFDFE9]'
+                    : 'text-[#A1A1AF] hover:bg-[#E6E6EE]'
+              } ${isToday && !isSelected ? 'border border-[#4E4E5C]' : 'border border-transparent'}`}
+            >
+              {date.getDate()}
+            </button>
+          );
+        })}
+      </div>
+
+      <div className="mt-3 flex items-center justify-between">
+        <button
+          type="button"
+          onClick={() => {
+            setValue('');
+            setOpen(false);
+          }}
+          className="rounded-lg border border-[#D2D2DD] bg-white px-2.5 py-1 text-xs font-semibold text-[#6B6B78] transition hover:border-[#B9B9C6] hover:text-[#1F1F1F]"
+        >
+          Clear
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            const now = new Date();
+            setValue(toIsoDate(now));
+            setViewDate(startOfMonth(now));
+            setOpen(false);
+          }}
+          className="rounded-lg border border-[#C7C7D2] bg-[#4E4E5C] px-2.5 py-1 text-xs font-semibold text-white shadow-[0_6px_14px_rgba(46,46,68,0.35)]"
+        >
+          Today
+        </button>
+      </div>
+    </div>,
+    document.body
+  ) : null;
+
   return (
-    <div className="space-y-1.5" ref={containerRef}>
+    <div className="space-y-1.5">
       <label className="block text-xs text-[#333333] mb-1.5 uppercase tracking-wider">{label}</label>
 
       <input type="hidden" name={name} value={value} />
@@ -117,8 +247,9 @@ export default function DateField({ name, label, placeholder = 'Select date', de
         className="md:hidden w-full bg-[#EBEBEB] border border-[var(--border)] rounded-lg px-3 py-3 text-sm text-[#333333] focus:outline-none focus:border-[#9E9EB0] focus:ring-1 focus:ring-[#9E9EB0]/30 transition-colors"
       />
 
-      <div className="relative hidden md:block">
+      <div className="hidden md:block">
         <button
+          ref={triggerRef}
           type="button"
           aria-haspopup="dialog"
           aria-expanded={open}
@@ -136,97 +267,7 @@ export default function DateField({ name, label, placeholder = 'Select date', de
           </span>
         </button>
 
-        {open && (
-          <div
-            role="dialog"
-            aria-label={`${label} calendar`}
-            className="absolute z-50 mt-2 w-full min-w-[260px] rounded-2xl border border-[#D1D1DE] bg-[linear-gradient(180deg,#F9F9FC_0%,#ECECF2_100%)] p-3 shadow-[0_18px_40px_rgba(34,34,52,0.18)]"
-          >
-            <div className="flex items-center justify-between">
-              <button
-                type="button"
-                onClick={() =>
-                  setViewDate((prev) => new Date(prev.getFullYear(), prev.getMonth() - 1, 1))
-                }
-                className="rounded-lg border border-transparent px-2 py-1 text-xs font-semibold text-[#4E4E5C] transition hover:border-[#C9C9D4] hover:bg-white"
-              >
-                Prev
-              </button>
-              <div className="text-sm font-semibold text-[#1D1D26]">{monthLabel}</div>
-              <button
-                type="button"
-                onClick={() =>
-                  setViewDate((prev) => new Date(prev.getFullYear(), prev.getMonth() + 1, 1))
-                }
-                className="rounded-lg border border-transparent px-2 py-1 text-xs font-semibold text-[#4E4E5C] transition hover:border-[#C9C9D4] hover:bg-white"
-              >
-                Next
-              </button>
-            </div>
-
-            <div className="mt-3 grid grid-cols-7 gap-1 text-[11px] font-semibold text-[#6B6B78]">
-              {WEEKDAYS.map((day) => (
-                <div key={day} className="text-center">
-                  {day}
-                </div>
-              ))}
-            </div>
-
-            <div className="mt-2 grid grid-cols-7 gap-1">
-              {days.map((date) => {
-                const inMonth = date.getMonth() === viewDate.getMonth();
-                const isSelected = selectedDate ? isSameDay(date, selectedDate) : false;
-                const isToday = isSameDay(date, today);
-
-                return (
-                  <button
-                    key={date.toISOString()}
-                    type="button"
-                    onClick={() => {
-                      setValue(toIsoDate(date));
-                      setViewDate(startOfMonth(date));
-                      setOpen(false);
-                    }}
-                    className={`flex h-9 w-9 items-center justify-center rounded-lg text-xs font-semibold transition ${
-                      isSelected
-                        ? 'bg-[#4E4E5C] text-white shadow-[0_6px_16px_rgba(46,46,68,0.35)]'
-                        : inMonth
-                          ? 'text-[#1F1F1F] hover:bg-[#DFDFE9]'
-                          : 'text-[#A1A1AF] hover:bg-[#E6E6EE]'
-                    } ${isToday && !isSelected ? 'border border-[#4E4E5C]' : 'border border-transparent'}`}
-                  >
-                    {date.getDate()}
-                  </button>
-                );
-              })}
-            </div>
-
-            <div className="mt-3 flex items-center justify-between">
-              <button
-                type="button"
-                onClick={() => {
-                  setValue('');
-                  setOpen(false);
-                }}
-                className="rounded-lg border border-[#D2D2DD] bg-white px-2.5 py-1 text-xs font-semibold text-[#6B6B78] transition hover:border-[#B9B9C6] hover:text-[#1F1F1F]"
-              >
-                Clear
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  const now = new Date();
-                  setValue(toIsoDate(now));
-                  setViewDate(startOfMonth(now));
-                  setOpen(false);
-                }}
-                className="rounded-lg border border-[#C7C7D2] bg-[#4E4E5C] px-2.5 py-1 text-xs font-semibold text-white shadow-[0_6px_14px_rgba(46,46,68,0.35)]"
-              >
-                Today
-              </button>
-            </div>
-          </div>
-        )}
+        {calendarPopover}
       </div>
     </div>
   );
